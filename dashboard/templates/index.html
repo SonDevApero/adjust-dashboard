@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adjust Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b0d13;color:#e0e0e0;min-height:100vh}
+
+/* Header */
+.header{background:linear-gradient(135deg,#10121a,#161a2a);border-bottom:1px solid #1e2235;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;background:linear-gradient(135deg,#4c6ef5,#7c3aed);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff}
+.header h1{font-size:20px;font-weight:700;color:#fff}
+.header h1 span{color:#7c3aed}
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+select,input[type="date"],button{background:#161a2a;color:#e0e0e0;border:1px solid #252a40;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;transition:border-color .2s}
+select:hover,input:hover,button:hover{border-color:#7c3aed}
+select:focus,input:focus{outline:none;border-color:#4c6ef5;box-shadow:0 0 0 2px rgba(76,110,245,.15)}
+.btn-refresh{background:linear-gradient(135deg,#4c6ef5,#7c3aed);border:none;color:#fff;font-weight:600;padding:8px 20px}
+.btn-refresh:hover{opacity:.9}
+.btn-refresh:disabled{opacity:.4;cursor:not-allowed}
+
+/* Status bar */
+.meta-bar{padding:10px 32px;display:flex;justify-content:space-between;align-items:center;color:#6b7280;font-size:12px;border-bottom:1px solid #141728}
+.status{display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#10b981}
+.dot.loading{background:#f59e0b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Loading overlay */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(11,13,19,.85);z-index:1000;justify-content:center;align-items:center;flex-direction:column;gap:16px}
+.loading-overlay.active{display:flex}
+.spinner{width:40px;height:40px;border:3px solid #252a40;border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay p{color:#9ca3af;font-size:14px}
+
+/* Error banner */
+.error-banner{display:none;margin:12px 32px;padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#ef4444;font-size:13px}
+.error-banner.active{display:block}
+
+/* Anomaly alerts */
+.alerts{padding:8px 32px;display:flex;flex-wrap:wrap;gap:6px;min-height:10px}
+.alert-badge{font-size:11px;padding:3px 10px;border-radius:4px;font-weight:600}
+.alert-badge.spike{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
+.alert-badge.drop{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
+
+/* KPI Cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:16px 32px}
+.kpi{background:#131622;border:1px solid #1e2235;border-radius:10px;padding:18px 16px;text-align:center;transition:border-color .2s}
+.kpi:hover{border-color:#4c6ef5}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;margin-bottom:5px}
+.kpi-value{font-size:24px;font-weight:700;color:#fff;line-height:1.2}
+.kpi-sub{font-size:10px;color:#4b5563;margin-top:3px}
+
+/* Sections */
+.section{padding:20px 32px}
+.section-title{font-size:14px;font-weight:600;margin-bottom:12px;color:#e0e0e0;display:flex;align-items:center;gap:8px}
+.section-title .badge{font-size:11px;background:#1e2235;padding:2px 8px;border-radius:4px;color:#6b7280}
+
+/* Charts */
+.chart-row{display:grid;grid-template-columns:3fr 2fr;gap:16px;padding:0 32px 16px}
+.chart-box{background:#13162;border:1px solid #1e2235;border-radius:10px;padding:18px}
+.chart-box h3{font-size:12px;font-weight:600;margin-bottom:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.3px}
+.chart-box canvas{width:100%!important;max-height:300px}
+
+/* Tables */
+.table-wrap{overflow-x:auto;background:#131622;border:1px solid #1e2235;border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;color:#6b7280;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.4px;border-bottom:1px solid #1e2235;cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
+th:hover{color:#e0e0e0}
+th.sorted{color:#7c3aed}
+td{padding:9px 14px;border-bottom:1px solid #161a2a;white-space:nowrap}
+tr:hover td{background:#161a2a}
+.positive{color:#10b981}
+.negative{color:#ef4444}
+
+/* Retention chart */
+.retention-row{display:grid;grid-template-columns:1fr;padding:0 32px 20px}
+
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){
+  .header,.kpi-grid,.section,.chart-row,.alerts,.retention-row{padding-left:16px;padding-right:16px}
+  .chart-row{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingText">Fetching last 30 days from Adjust API...</p>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">A</div>
+    <h1><span>Adjust</span> Analytics</h1>
+  </div>
+  <div class="controls">
+    <a href="/roas" style="background:#1a1a0d;color:#f59e0b;border:1px solid #f59e0b;padding:8px 16px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">ROAS Analysis</a>
+    <a href="/brazil" style="background:#0d1a14;color:#10b981;border:1px solid #10b981;padding:8px 16px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">APL389 Brazil</a>
+    <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">Refresh Data</button>
+  </div>
+</div>
+
+<div class="meta-bar">
+  <div class="status"><div class="dot" id="dot"></div><span id="statusText">Loading...</span></div>
+  <div>Last updated: <span id="fetchedAt">-</span></div>
+</div>
+
+<!-- Error banner -->
+<div class="error-banner" id="errorBanner"></div>
+
+<!-- Anomaly alerts -->
+<div class="alerts" id="alertsBar"></div>
+
+<!-- 1. KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-label">Total Installs</div><div class="kpi-value" id="kpiInstalls">-</div></div>
+  <div class="kpi"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="kpiRevenue">-</div><div class="kpi-sub">USD</div></div>
+  <div class="kpi"><div class="kpi-label">DAU</div><div class="kpi-value" id="kpiDaus">-</div><div class="kpi-sub">Daily Active Users</div></div>
+  <div class="kpi"><div class="kpi-label">Avg eCPI</div><div class="kpi-value" id="kpiEcpi">-</div><div class="kpi-sub">Cost per Install</div></div>
+  <div class="kpi"><div class="kpi-label">Total Ad Spend</div><div class="kpi-value" id="kpiCost">-</div><div class="kpi-sub">USD</div></div>
+  <div class="kpi"><div class="kpi-label">Total Sessions</div><div class="kpi-value" id="kpiSessions">-</div></div>
+</div>
+
+<!-- 2. Daily Trend + 4. Country Breakdown -->
+<div class="chart-row">
+  <div class="chart-box">
+    <h3>Daily Installs &amp; Revenue (by App)</h3>
+    <canvas id="trendChart"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>Top 10 Countries by Installs</h3>
+    <canvas id="countryChart"></canvas>
+  </div>
+</div>
+
+<!-- 3. App Comparison Table -->
+<div class="section">
+  <div class="section-title">App Comparison <span class="badge" id="appCount">0</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="sortAppTable('app')">App Name</th>
+        <th onclick="sortAppTable('installs')">Installs</th>
+        <th onclick="sortAppTable('revenue')">Revenue</th>
+        <th onclick="sortAppTable('cost')">Cost</th>
+        <th onclick="sortAppTable('ecpi')">eCPI</th>
+        <th onclick="sortAppTable('sessions')">Sessions</th>
+        <th onclick="sortAppTable('daus')">DAU</th>
+      </tr></thead>
+      <tbody id="appBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 5. Campaign Performance Table -->
+<div class="section">
+  <div class="section-title">Campaign Performance <span class="badge" id="campaignCount">0</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="sortCampTable('campaign')">Campaign</th>
+        <th onclick="sortCampTable('app')">App</th>
+        <th onclick="sortCampTable('installs')">Installs</th>
+        <th onclick="sortCampTable('cost')">Cost</th>
+        <th onclick="sortCampTable('revenue')">Revenue</th>
+        <th onclick="sortCampTable('ecpi')">eCPI</th>
+      </tr></thead>
+      <tbody id="campaignBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 6. Retention Chart -->
+<div class="section">
+  <div class="section-title">DAU &amp; Sessions by App</div>
+</div>
+<div class="retention-row">
+  <div class="chart-box">
+    <canvas id="retentionChart"></canvas>
+  </div>
+</div>
+
+<script>
+let trendChart = null, countryChart = null, retentionChart = null;
+let appData = [], campaignData = [];
+let appSort = {col:'revenue', asc:false};
+let campSort = {col:'revenue', asc:false};
+
+const APP_COLORS = [
+  '#4c6ef5','#7c3aed','#06b6d4','#10b981','#f59e0b',
+  '#ef4444','#ec4899','#8b5cf6','#14b8a6','#f97316',
+];
+
+function fmtNum(n){
+  if(n==null||isNaN(n))return'-';
+  if(n>=1e6)return(n/1e6).toFixed(1)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return n.toLocaleString();
+}
+function fmtMoney(n){
+  if(n==null||isNaN(n))return'-';
+  return '$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+// ── Loading ──
+function showLoading(msg){
+  document.getElementById('loadingText').textContent=msg||'Loading...';
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+function hideLoading(){
+  document.getElementById('loadingOverlay').classList.remove('active');
+}
+function setStatus(text,loading){
+  document.getElementById('statusText').textContent=text;
+  const dot=document.getElementById('dot');
+  loading?dot.classList.add('loading'):dot.classList.remove('loading');
+}
+function showError(errors){
+  const banner=document.getElementById('errorBanner');
+  if(!errors||!errors.length){banner.classList.remove('active');return;}
+  banner.innerHTML=errors.map(e=>`<div><strong>${esc(e.source||'API')}:</strong> ${esc(e.error)}</div>`).join('');
+  banner.classList.add('active');
+}
+
+// ── Auto-fetch on page load ──
+async function init(){
+  showLoading('Fetching last 30 days from Adjust API...');
+  setStatus('Fetching data...', true);
+  try{
+    const resp=await fetch('/api/refresh',{method:'POST'});
+    const r=await resp.json();
+    // Poll until data is ready
+    await pollForData();
+  }catch(e){
+    console.error(e);
+    // Try loading cached data
+    await loadAll();
+    hideLoading();
+    setStatus('Using cached data',false);
+  }
+}
+
+async function pollForData(){
+  let attempts=0;
+  return new Promise((resolve)=>{
+    const iv=setInterval(async()=>{
+      attempts++;
+      try{
+        const r=await(await fetch('/api/overview')).json();
+        if(r.fetched_at||attempts>=30){
+          clearInterval(iv);
+          await loadAll();
+          hideLoading();
+          setStatus('Ready',false);
+          resolve();
+        }
+        if(r.errors&&r.errors.length){
+          showError(r.errors);
+        }
+      }catch(e){
+        if(attempts>=30){clearInterval(iv);hideLoading();setStatus('Error',false);resolve();}
+      }
+    },2000);
+  });
+}
+
+async function loadAll(){
+  await Promise.all([loadOverview(),loadTrend(),loadApps(),loadCountries(),loadCampaigns(),loadRetention()]);
+}
+
+// ── 1. Overview / KPIs ──
+async function loadOverview(){
+  try{
+    const r=await(await fetch('/api/overview')).json();
+    const t=r.totals||{};
+    document.getElementById('kpiInstalls').textContent=fmtNum(t.installs);
+    document.getElementById('kpiRevenue').textContent=fmtMoney(t.revenue);
+    document.getElementById('kpiDaus').textContent=fmtNum(t.daus);
+    document.getElementById('kpiEcpi').textContent=fmtMoney(t.ecpi);
+    document.getElementById('kpiCost').textContent=fmtMoney(t.cost);
+    document.getElementById('kpiSessions').textContent=fmtNum(t.sessions);
+    if(r.fetched_at)document.getElementById('fetchedAt').textContent=new Date(r.fetched_at).toLocaleString();
+    if(r.errors&&r.errors.length)showError(r.errors);
+    // Anomalies
+    const bar=document.getElementById('alertsBar');
+    bar.innerHTML='';
+    (r.anomalies||[]).slice(0,10).forEach(a=>{
+      const el=document.createElement('span');
+      el.className=`alert-badge ${a.type}`;
+      el.textContent=`${a.metric} ${a.type==='spike'?'\u2191':'\u2193'}${Math.abs(a.change_pct)}% on ${a.date}`;
+      bar.appendChild(el);
+    });
+  }catch(e){console.error('overview',e);}
+}
+
+// ── 2. Daily Trend Chart (per app) ──
+async function loadTrend(){
+  try{
+    const r=await(await fetch('/api/trend')).json();
+    const t=r.trend||{};
+    renderTrendChart(t.dates||[],t.apps||{});
+  }catch(e){console.error('trend',e);}
+}
+
+function renderTrendChart(dates,apps){
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  if(trendChart)trendChart.destroy();
+
+  const appNames=Object.keys(apps);
+  const datasets=[];
+  appNames.forEach((name,i)=>{
+    const color=APP_COLORS[i%APP_COLORS.length];
+    datasets.push({
+      label:name+' Installs',
+      data:apps[name].installs,
+      borderColor:color,
+      backgroundColor:color+'18',
+      fill:false,tension:.3,
+      yAxisID:'y',
+      borderWidth:2,
+      pointRadius:1,
+    });
+    datasets.push({
+      label:name+' Revenue',
+      data:apps[name].revenue,
+      borderColor:color,
+      borderDash:[5,3],
+      backgroundColor:'transparent',
+      fill:false,tension:.3,
+      yAxisID:'y1',
+      borderWidth:1.5,
+      pointRadius:0,
+    });
+  });
+
+  trendChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:dates,datasets},
+    options:{
+      responsive:true,
+      interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{labels:{color:'#9ca3af',font:{size:10},boxWidth:14},position:'bottom'}},
+      scales:{
+        x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},
+        y:{position:'left',title:{display:true,text:'Installs',color:'#4b5563',font:{size:10}},ticks:{color:'#4c6ef5',font:{size:10}},grid:{color:'#1e2235'}},
+        y1:{position:'right',title:{display:true,text:'Revenue ($)',color:'#4b5563',font:{size:10}},ticks:{color:'#10b981',font:{size:10},callback:v=>'$'+v},grid:{display:false}},
+      }
+    }
+  });
+}
+
+// ── 3. App Comparison Table ──
+async function loadApps(){
+  try{
+    const r=await(await fetch('/api/performance')).json();
+    appData=r.apps||[];
+    document.getElementById('appCount').textContent=appData.length;
+    renderAppTable();
+  }catch(e){console.error('apps',e);}
+}
+
+function sortAppTable(col){
+  if(appSort.col===col)appSort.asc=!appSort.asc;
+  else{appSort.col=col;appSort.asc=false;}
+  renderAppTable();
+}
+
+function renderAppTable(){
+  const sorted=[...appData].sort((a,b)=>{
+    const av=a[appSort.col],bv=b[appSort.col];
+    if(typeof av==='string')return appSort.asc?av.localeCompare(bv):bv.localeCompare(av);
+    return appSort.asc?av-bv:bv-av;
+  });
+  document.getElementById('appBody').innerHTML=sorted.map(a=>`<tr>
+    <td style="font-weight:600">${esc(a.app)}</td>
+    <td>${fmtNum(a.installs)}</td>
+    <td>${fmtMoney(a.revenue)}</td>
+    <td>${fmtMoney(a.cost)}</td>
+    <td>${fmtMoney(a.ecpi)}</td>
+    <td>${fmtNum(a.sessions)}</td>
+    <td>${fmtNum(a.daus)}</td>
+  </tr>`).join('');
+}
+
+// ── 4. Country Breakdown ──
+async function loadCountries(){
+  try{
+    const r=await(await fetch('/api/countries')).json();
+    renderCountryChart((r.countries||[]).slice(0,10));
+  }catch(e){console.error('countries',e);}
+}
+
+function renderCountryChart(countries){
+  const ctx=document.getElementById('countryChart').getContext('2d');
+  if(countryChart)countryChart.destroy();
+
+  // Get all apps across countries
+  const allApps=new Set();
+  countries.forEach(c=>{Object.keys(c.by_app||{}).forEach(a=>allApps.add(a));});
+  const appList=[...allApps];
+
+  const datasets=appList.map((app,i)=>({
+    label:app,
+    data:countries.map(c=>(c.by_app||{})[app]||0),
+    backgroundColor:APP_COLORS[i%APP_COLORS.length]+'bb',
+    borderColor:APP_COLORS[i%APP_COLORS.length],
+    borderWidth:1,
+    borderRadius:3,
+  }));
+
+  // Fallback if no per-app data
+  if(!datasets.length){
+    datasets.push({
+      label:'Installs',
+      data:countries.map(c=>c.installs),
+      backgroundColor:'#7c3aed99',
+      borderColor:'#7c3aed',
+      borderWidth:1,
+      borderRadius:3,
+    });
+  }
+
+  countryChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels:countries.map(c=>c.country),datasets},
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#9ca3af',font:{size:10},boxWidth:12},position:'bottom'}},
+      scales:{
+        x:{stacked:true,ticks:{color:'#4b5563',font:{size:10}},grid:{color:'#1e2235'}},
+        y:{stacked:true,ticks:{color:'#4b5563',font:{size:10}},grid:{color:'#1e2235'}},
+      }
+    }
+  });
+}
+
+// ── 5. Campaign Table ──
+async function loadCampaigns(){
+  try{
+    const r=await(await fetch('/api/campaigns')).json();
+    campaignData=r.campaigns||[];
+    document.getElementById('campaignCount').textContent=campaignData.length;
+    renderCampaignTable();
+  }catch(e){console.error('campaigns',e);}
+}
+
+function sortCampTable(col){
+  if(campSort.col===col)campSort.asc=!campSort.asc;
+  else{campSort.col=col;campSort.asc=false;}
+  renderCampaignTable();
+}
+
+function renderCampaignTable(){
+  const sorted=[...campaignData].sort((a,b)=>{
+    const av=a[campSort.col],bv=b[campSort.col];
+    if(typeof av==='string')return campSort.asc?av.localeCompare(bv):bv.localeCompare(av);
+    return campSort.asc?av-bv:bv-av;
+  });
+  document.getElementById('campaignBody').innerHTML=sorted.map(c=>`<tr>
+    <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis">${esc(c.campaign)}</td>
+    <td style="color:#6b7280">${esc(c.app)}</td>
+    <td>${fmtNum(c.installs)}</td>
+    <td>${fmtMoney(c.cost)}</td>
+    <td>${fmtMoney(c.revenue)}</td>
+    <td>${fmtMoney(c.ecpi)}</td>
+  </tr>`).join('');
+}
+
+// ── 6. Retention Chart ──
+async function loadRetention(){
+  try{
+    const r=await(await fetch('/api/retention')).json();
+    renderRetentionChart(r.retention||[]);
+  }catch(e){console.error('retention',e);}
+}
+
+function renderRetentionChart(data){
+  const ctx=document.getElementById('retentionChart').getContext('2d');
+  if(retentionChart)retentionChart.destroy();
+  if(!data.length)return;
+
+  retentionChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.app),
+      datasets:[
+        {label:'DAU',data:data.map(d=>d.daus),backgroundColor:'#4c6ef5cc',borderColor:'#4c6ef5',borderWidth:1,borderRadius:4},
+        {label:'Sessions',data:data.map(d=>d.sessions),backgroundColor:'#10b981cc',borderColor:'#10b981',borderWidth:1,borderRadius:4},
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#9ca3af',font:{size:11}}}},
+      scales:{
+        x:{ticks:{color:'#6b7280',font:{size:11}},grid:{color:'#1e2235'}},
+        y:{ticks:{color:'#6b7280',font:{size:10}},grid:{color:'#1e2235'}},
+      }
+    }
+  });
+}
+
+// ── Refresh ──
+async function refreshData(){
+  const btn=document.getElementById('refreshBtn');
+  btn.disabled=true;
+  showLoading('Refreshing data from Adjust API...');
+  setStatus('Fetching...',true);
+  try{
+    await fetch('/api/refresh',{method:'POST'});
+    await pollForData();
+  }catch(e){
+    hideLoading();
+    setStatus('Refresh failed',false);
+  }
+  btn.disabled=false;
+}
+
+// ── Init ──
+init();
+</script>
+</body>
+</html>
