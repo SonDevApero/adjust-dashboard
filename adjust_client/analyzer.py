@@ -15,7 +15,8 @@ def safe_float(val, default=0.0):
 
 
 def _roas(revenue, cost):
-    return round(revenue / cost, 2) if cost > 0 else 0.0
+    """ROAS as percentage: revenue/cost * 100."""
+    return round(revenue / cost * 100, 2) if cost > 0 else 0.0
 
 
 def compute_overview(rows):

@@ -38,6 +38,15 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .btn-refresh:disabled{opacity:.4;cursor:not-allowed}
 .btn-apply.applying{background:var(--card)!important;color:var(--amber);border:1px solid var(--amber)!important}
 
+/* Progress bar */
+.progress-wrap{position:sticky;top:0;z-index:50;background:var(--bg);padding:0;display:none}
+.progress-wrap.active{display:block}
+.progress-bar-bg{height:3px;background:var(--border);width:100%;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));width:0%;transition:width .3s ease}
+.progress-info{display:flex;align-items:center;justify-content:space-between;padding:4px 12px;font-size:10px;color:var(--muted)}
+.progress-info .task{color:var(--text);font-weight:500}
+.progress-info .pct{color:var(--purple);font-weight:700;font-size:11px}
+
 /* Spinner */
 .spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -215,7 +224,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
 <!-- Mobile header -->
 <div class="mobile-header">
   <div class="logo">A</div>
-  <h2>Terasofts</h2>
+  <span style="font-size:12px;font-weight:700;color:var(--purple);flex:1">APL389</span>
   <button class="burger" onclick="toggleSidebar()">&#9776;</button>
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -251,9 +260,14 @@ tr.row-bad td{border-left:2px solid var(--red)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
       MKT Report Cohort
     </div>
+    <div class="nav-item" data-tab="business">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Business View
+    </div>
   </nav>
   <div class="sidebar-bottom">
-    <div style="font-size:11px;color:var(--purple);font-weight:600;margin-bottom:6px">Terasofts Dashboard</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Product</div>
+    <div style="font-size:12px;color:var(--purple);font-weight:700;margin-bottom:8px">APL389 - Photo Video Maker</div>
     <span class="sync">Last synced: <span id="syncTime">-</span></span>
     <a href="/logout" style="display:flex;align-items:center;gap:6px;margin-top:10px;color:var(--muted);font-size:12px;text-decoration:none;padding:6px 0;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--muted)'">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
@@ -264,6 +278,13 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
 <!-- Main -->
 <div class="main">
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-info">
+      <span class="task" id="progressTask">Loading...</span>
+      <span class="pct" id="progressPct">0%</span>
+    </div>
+  </div>
   <div class="content">
 
     <!-- TAB 1: Overview -->
@@ -464,12 +485,91 @@ tr.row-bad td{border-left:2px solid var(--red)}
       </div>
     </div>
 
+    <!-- TAB 7: Business View -->
+    <div class="tab-panel" id="tab-business">
+      <div class="tab-filter" data-tab="business">
+        <select class="df-range" data-tab="business"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
+        <input type="date" class="df-start" data-tab="business" style="display:none">
+        <input type="date" class="df-end" data-tab="business" style="display:none">
+        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadBusinessView)">Apply</button>
+      </div>
+
+      <!-- Alerts -->
+      <div id="bvAlerts" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-row" id="bvKpis" style="grid-template-columns:repeat(3,1fr)"></div>
+
+      <!-- Charts -->
+      <div class="chart-row c2">
+        <div class="chart-box"><h3>Doanh Thu &amp; Chi Ph&#xED; theo ng&#xE0;y</h3><canvas id="bvRevCostChart"></canvas></div>
+        <div class="chart-box"><h3>ROAS D7 theo ng&#xE0;y (+ MA7)</h3><canvas id="bvRoasChart"></canvas></div>
+      </div>
+      <div class="chart-row c2">
+        <div class="chart-box"><h3>Top Qu&#x1ED1;c Gia theo Doanh Thu</h3><canvas id="bvCountryChart"></canvas></div>
+        <div class="chart-box"><h3>L&#x1EE3;i Nhu&#x1EAD;n theo ng&#xE0;y</h3><canvas id="bvProfitChart"></canvas></div>
+      </div>
+
+      <!-- Week Comparison -->
+      <div class="chart-box" style="margin-bottom:16px">
+        <h3>So s&#xE1;nh 7 ng&#xE0;y g&#x1EA7;n nh&#x1EA5;t vs 7 ng&#xE0;y tr&#x01B0;&#x1EDB;c</h3>
+        <div class="table-wrap" style="border:none"><table>
+          <thead><tr><th>Ch&#x1EC9; s&#x1ED1;</th><th>7 ng&#xE0;y g&#x1EA7;n nh&#x1EA5;t</th><th>7 ng&#xE0;y tr&#x01B0;&#x1EDB;c</th><th>Thay &#x0111;&#x1ED5;i</th></tr></thead>
+          <tbody id="bvWeekBody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- AI Insights -->
+      <div class="chart-box" style="border-left:3px solid var(--purple);margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <h3 style="color:var(--purple);font-size:13px;text-transform:none;letter-spacing:0;margin:0">G&#x1EE3;i &#xFD; t&#x1EEB; AI (Claude)</h3>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="bvAiTime" style="font-size:10px;color:var(--muted)"></span>
+            <button onclick="loadAiInsights()" id="bvAiBtn" style="background:var(--purple);color:#fff;border:none;padding:5px 14px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">Ph&#xE2;n t&#xED;ch AI</button>
+          </div>
+        </div>
+        <div id="bvAiContent" style="font-size:13px;line-height:1.8;color:#c0c0c0;white-space:pre-wrap">
+          Nh&#x1EA5;n "Ph&#xE2;n t&#xED;ch AI" &#x0111;&#x1EC3; nh&#x1EAD;n g&#x1EE3;i &#xFD; kinh doanh t&#x1EEB; Claude AI.
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
 const COLORS=['#4c6ef5','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#14b8a6','#f97316','#64748b','#a855f7','#22d3ee'];
 const APP='APL389';
+
+// === PROGRESS TRACKER ===
+const progress={total:0,done:0,current:'',startTime:0};
+function progressStart(total,label){
+  progress.total=total;progress.done=0;progress.current=label||'';
+  progress.startTime=Date.now();
+  const wrap=document.getElementById('progressWrap');
+  wrap.classList.add('active');
+  progressUpdate(0,label);
+}
+function progressStep(label){
+  progress.done++;
+  progress.current=label||'';
+  const pct=Math.min(Math.round(progress.done/progress.total*100),100);
+  progressUpdate(pct,label);
+}
+function progressUpdate(pct,label){
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('progressPct').textContent=pct+'%';
+  const elapsed=((Date.now()-progress.startTime)/1000).toFixed(0);
+  const task=label||progress.current||'Loading';
+  document.getElementById('progressTask').textContent=task+' ('+elapsed+'s)';
+}
+function progressDone(){
+  const elapsed=((Date.now()-progress.startTime)/1000).toFixed(1);
+  document.getElementById('progressBar').style.width='100%';
+  document.getElementById('progressPct').textContent='100%';
+  document.getElementById('progressTask').textContent='Done in '+elapsed+'s';
+  setTimeout(()=>{document.getElementById('progressWrap').classList.remove('active');},2000);
+}  // appCode -> {overview, trend, campaigns, countries, cohort}
 
 function getActiveTab(){
   const el=document.querySelector('.nav-item.active');
@@ -554,6 +654,7 @@ document.querySelectorAll('.nav-item').forEach(el=>{
     if(tab==='roas'){loadRoas();}
     if(tab==='optimal'){loadCountries().then(()=>renderOptimalZones());}
     if(tab==='cohort'){loadCohort();}
+    if(tab==='business'){loadBusinessView();}
   });
 });
 
@@ -570,12 +671,170 @@ document.querySelectorAll('.df-range').forEach(sel=>{
 });
 
 // === INIT ===
-async function init(){
-  await Promise.all([loadOverview(),loadTrend()]);
+// === TAB 7: BUSINESS VIEW ===
+let bvData=null;
+function fVN(n){if(n==null||isNaN(n))return'-';return n.toLocaleString('vi-VN');}
+
+async function loadBusinessView(){
+  progressStart(2,'Loading Business View...');
+  try{
+    const r=await fetchJSON('/api/business_view'+Q('business'));
+    if(r.error){console.error(r.error);return;}
+    bvData=r;
+    progressStep('Rendering...');
+    renderBusinessView();
+  }catch(e){console.error('bv',e);}
+  progressDone();
 }
 
-function roasColor(v){return v>=1.3?'var(--green)':v>=1?'var(--amber)':'var(--red)';}
-function roasCls(v){return v>=1.3?'good':v>=1?'warn':'bad';}
+function renderBusinessView(){
+  const d=bvData;
+  const k=d.kpis;
+
+  // Alerts
+  const alertsEl=document.getElementById('bvAlerts');
+  alertsEl.innerHTML=(d.alerts||[]).map(a=>{
+    const cls=a.type==='danger'?'spike':a.type==='warning'?'drop':'';
+    const icon=a.type==='danger'?'\uD83D\uDD34':a.type==='warning'?'\uD83D\uDFE1':'\uD83D\uDFE2';
+    return `<span class="alert-badge ${cls}" style="font-size:11px;padding:4px 10px">${icon} ${esc(a.msg)}</span>`;
+  }).join('');
+
+  // KPIs
+  function kpiCard(label,cur,prev,change,prefix,suffix,invert){
+    const up=invert?change<0:change>0;
+    const color=up?'var(--green)':'var(--red)';
+    const arrow=change>0?'\u2191':change<0?'\u2193':'';
+    const fCur=prefix+(typeof cur==='number'&&cur>=1000?fVN(Math.round(cur)):cur)+suffix;
+    const fPrev=prefix+(typeof prev==='number'&&prev>=1000?fVN(Math.round(prev)):prev)+suffix;
+    return `<div class="kpi">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value">${fCur}</div>
+      <div class="kpi-sub" style="color:${color};font-weight:600">${arrow} ${change>0?'+':''}${change}% <span style="color:var(--muted);font-weight:400">vs ${fPrev}</span></div>
+    </div>`;
+  }
+  document.getElementById('bvKpis').innerHTML=
+    kpiCard('T\u1ED5ng Doanh Thu',k.revenue.current,k.revenue.previous,k.revenue.change,'$','',false)+
+    kpiCard('T\u1ED5ng Chi Ph\u00ED QC',k.cost.current,k.cost.previous,k.cost.change,'$','',true)+
+    kpiCard('L\u1EE3i Nhu\u1EADn R\u00F2ng',k.profit.current,k.profit.previous,k.profit.change,'$','',false)+
+    kpiCard('ROAS Trung B\u00ECnh',k.roas.current,k.roas.previous,k.roas.change,'','%',false)+
+    kpiCard('T\u1ED5ng C\u00E0i \u0110\u1EB7t',k.installs.current,k.installs.previous,k.installs.change,'','',false)+
+    kpiCard('eCPI',k.ecpi.current,k.ecpi.previous,k.ecpi.change,'$','',true);
+
+  const daily=d.daily||[];
+  const dates=daily.map(x=>x.date.slice(5));
+
+  // Revenue vs Cost chart
+  destroyChart('bvRevCostChart');
+  charts.bvRevCostChart=new Chart(document.getElementById('bvRevCostChart'),{type:'line',data:{
+    labels:dates,
+    datasets:[
+      {label:'Doanh Thu',data:daily.map(x=>x.revenue),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
+      {label:'Chi Ph\u00ED',data:daily.map(x=>x.cost),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
+    ]
+  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}}}
+  }});
+
+  // ROAS chart with threshold + MA7
+  destroyChart('bvRoasChart');
+  charts.bvRoasChart=new Chart(document.getElementById('bvRoasChart'),{type:'line',data:{
+    labels:dates,
+    datasets:[
+      {label:'ROAS D7',data:daily.map(x=>x.roas_d7),borderColor:'#4c6ef5',borderWidth:2,tension:.3,pointRadius:1,fill:false,
+        segment:{borderColor:ctx=>{const v=ctx.p0.parsed.y;return v>=100?'#10b981':'#ef4444';}}},
+      {label:'MA7',data:daily.map(x=>x.roas_ma7),borderColor:'#f59e0b',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:.3},
+      {label:'Ng\u01B0\u1EE1ng 100%',data:daily.map(()=>100),borderColor:'rgba(255,255,255,.2)',borderDash:[2,4],borderWidth:1,pointRadius:0,fill:false},
+    ]
+  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'%'},grid:{color:'#1e2235'}}}
+  }});
+
+  // Country chart
+  const countries=d.countries||[];
+  destroyChart('bvCountryChart');
+  charts.bvCountryChart=new Chart(document.getElementById('bvCountryChart'),{type:'bar',data:{
+    labels:countries.slice(0,8).map(c=>c.country),
+    datasets:[
+      {label:'Doanh Thu',data:countries.slice(0,8).map(c=>c.revenue),backgroundColor:'#10b98188',borderColor:'#10b981',borderWidth:1,borderRadius:3},
+      {label:'Chi Ph\u00ED',data:countries.slice(0,8).map(c=>c.cost),backgroundColor:'#ef444488',borderColor:'#ef4444',borderWidth:1,borderRadius:3},
+    ]
+  },options:{responsive:true,indexAxis:'y',plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+    scales:{x:{stacked:false,ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:9}},grid:{display:false}}}
+  }});
+
+  // Profit chart
+  destroyChart('bvProfitChart');
+  charts.bvProfitChart=new Chart(document.getElementById('bvProfitChart'),{type:'bar',data:{
+    labels:dates,
+    datasets:[{label:'L\u1EE3i Nhu\u1EADn',data:daily.map(x=>x.profit),
+      backgroundColor:daily.map(x=>x.profit>=0?'rgba(16,185,129,.5)':'rgba(239,68,68,.5)'),
+      borderColor:daily.map(x=>x.profit>=0?'#10b981':'#ef4444'),
+      borderWidth:1,borderRadius:2}]
+  },options:{responsive:true,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}}}
+  }});
+
+  // Week comparison table
+  const wc=d.week_comparison||{};
+  const labels={'installs':'L\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t','revenue':'Doanh thu','cost':'Chi ph\u00ED','profit':'L\u1EE3i nhu\u1EADn','roas':'ROAS','daus':'DAU'};
+  document.getElementById('bvWeekBody').innerHTML=Object.keys(labels).map(k=>{
+    const w=wc[k]||{};
+    const c=w.current||0, p=w.previous||0, ch=w.change||0;
+    const color=((k==='cost'||k==='ecpi')?ch<0:ch>0)?'var(--green)':'var(--red)';
+    const prefix=k==='revenue'||k==='cost'||k==='profit'?'$':'';
+    const suffix=k==='roas'?'%':'';
+    return `<tr>
+      <td style="font-weight:600">${labels[k]}</td>
+      <td>${prefix}${fVN(Math.round(c))}${suffix}</td>
+      <td>${prefix}${fVN(Math.round(p))}${suffix}</td>
+      <td style="color:${color};font-weight:${Math.abs(ch)>20?'700':'400'}">${ch>0?'+':''}${ch}%</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadAiInsights(){
+  if(!bvData)return;
+  const btn=document.getElementById('bvAiBtn');
+  const el=document.getElementById('bvAiContent');
+  btn.disabled=true;btn.textContent='\u0110ang ph\u00E2n t\u00EDch...';
+  el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div class="spinner"></div> \u0110ang g\u1ECDi Claude AI ph\u00E2n t\u00EDch d\u1EEF li\u1EC7u...</div>';
+
+  try{
+    const r=await fetchJSON('/api/ai_insights',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({kpis:bvData.kpis,countries:bvData.countries,alerts:bvData.alerts,week_comparison:bvData.week_comparison}),
+    });
+    if(r.error){el.textContent='L\u1ED7i: '+r.error;return;}
+    // Format sections
+    let text=r.insights||'';
+    text=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    text=text.replace(/^### (.*)/gm,'<h4 style="color:var(--purple);margin:12px 0 4px">$1</h4>');
+    text=text.replace(/^## (.*)/gm,'<h3 style="color:var(--purple);margin:14px 0 6px">$1</h3>');
+    text=text.replace(/^- (.*)/gm,'<li style="margin-left:16px">$1</li>');
+    el.innerHTML=text;
+    document.getElementById('bvAiTime').textContent='C\u1EADp nh\u1EADt: '+new Date(r.generated_at).toLocaleString('vi-VN');
+  }catch(e){
+    el.textContent='L\u1ED7i: '+e.message;
+  }
+  btn.disabled=false;btn.textContent='Ph\u00E2n t\u00EDch AI';
+}
+
+async function init(){
+  progressStart(4,'Initializing APL389 dashboard...');
+  progressStep('Loading overview...');
+  await loadOverview();
+  progressStep('Loading trend...');
+  await loadTrend();
+  progressStep('Loading countries...');
+  await loadCountriesForOverview();
+  progressStep('Loading campaigns...');
+  await loadCampaignsForOverview();
+  progressDone();
+}
+
+function roasColor(v){return v>=100?'var(--green)':v>=80?'var(--amber)':'var(--red)';}
+function roasCls(v){return v>=100?'good':v>=80?'warn':'bad';}
 
 // === TAB 1: OVERVIEW ===
 async function loadOverview(){
@@ -588,10 +847,10 @@ async function loadOverview(){
     document.getElementById('k_cost').textContent=fM(t.cost);
     document.getElementById('k_rev_d7').textContent=fM(t.rev_d7);
     document.getElementById('k_rev_d0').textContent=fM(t.rev_d0);
-    document.getElementById('k_roas_d0').textContent=(t.roas_d0||0)+'x';
-    document.getElementById('k_roas_d1').textContent=(t.roas_d1||0)+'x';
-    document.getElementById('k_roas_d3').textContent=(t.roas_d3||0)+'x';
-    document.getElementById('k_roas_d7').textContent=(t.roas_d7||0)+'x';
+    document.getElementById('k_roas_d0').textContent=(t.roas_d0||0)+'%';
+    document.getElementById('k_roas_d1').textContent=(t.roas_d1||0)+'%';
+    document.getElementById('k_roas_d3').textContent=(t.roas_d3||0)+'%';
+    document.getElementById('k_roas_d7').textContent=(t.roas_d7||0)+'%';
     // Color code ROAS
     ['k_roas_d0','k_roas_d1','k_roas_d3','k_roas_d7'].forEach(id=>{
       const el=document.getElementById(id);
@@ -633,7 +892,7 @@ async function loadOverview(){
           {label:'ROAS D7',data:daily.map(d=>d.roas_d7),borderColor:'#10b981',backgroundColor:'#10b98155',borderWidth:3,tension:.3,pointRadius:pr,fill:false},
         ]
       },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-        scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0}}
+        scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'%'},grid:{color:'#1e2235'},suggestedMin:0}}
       }});
     }
     // Analysis
@@ -660,8 +919,6 @@ async function loadTrend(){
   try{
     const r=await fetchJSON('/api/trend'+Q('overview'));
     allTrend=r.trend||{};
-    await loadCountriesForOverview();
-    await loadCampaignsForOverview();
   }catch(e){}
 }
 
@@ -861,7 +1118,7 @@ function renderCountryDetail(data, country){
       {label:'ROAS D7',data:days.map(d=>d.roas_d7),borderColor:'#10b981',borderWidth:3,tension:.3,pointRadius:3,fill:false},
     ]
   },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0}}
+    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'%'},grid:{color:'#1e2235'},suggestedMin:0}}
   }});
 
   // LTV chart
@@ -981,8 +1238,8 @@ function renderRoas(){
   document.getElementById('roasKpis').innerHTML=`
     <div class="kpi"><div class="kpi-label">Ad Spend</div><div class="kpi-value">${fM(totalCost)}</div></div>
     <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value">${fM(totalRev)}</div></div>
-    <div class="kpi" style="border-color:${roasColor(overallRoasD7)}"><div class="kpi-label">ROAS Cohort D7</div><div class="kpi-value">${overallRoasD7}x</div><div class="kpi-sub">D0: ${overallRoasD0}x</div></div>
-    <div class="kpi" style="border-color:var(--green)"><div class="kpi-label">Best Country</div><div class="kpi-value">${bestC.roas_d7||0}x</div><div class="kpi-sub">${bestC.country||'-'}</div></div>
+    <div class="kpi" style="border-color:${roasColor(overallRoasD7)}"><div class="kpi-label">ROAS Cohort D7</div><div class="kpi-value">${overallRoasD7}%</div><div class="kpi-sub">D0: ${overallRoasD0}%</div></div>
+    <div class="kpi" style="border-color:var(--green)"><div class="kpi-label">Best Country</div><div class="kpi-value">${bestC.roas_d7||0}%</div><div class="kpi-sub">${bestC.country||'-'}</div></div>
   `;
 
   // Daily ROAS cohort chart
@@ -998,7 +1255,7 @@ function renderRoas(){
         {label:'ROAS D7',data:daily.map(x=>x.roas_d7),borderColor:'#10b981',backgroundColor:'#10b98155',borderWidth:3,tension:.3,pointRadius:pr,fill:false},
       ]
     },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-      scales:{x:{ticks:{color:'#6b7280'},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0}}
+      scales:{x:{ticks:{color:'#6b7280'},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',callback:v=>v+'%'},grid:{color:'#1e2235'},suggestedMin:0}}
     }});
   }
 
@@ -1013,7 +1270,7 @@ function renderRoas(){
         borderColor:sortedC.map(a=>(a.roas_d7||0)>=1.3?'#10b981':(a.roas_d7||0)>=1?'#f59e0b':'#ef4444'),
         borderWidth:1,borderRadius:3}]
     },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
+      scales:{x:{ticks:{color:'#6b7280',callback:v=>v+'%'},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
     }});
   }
 
@@ -1044,11 +1301,17 @@ function renderRoas(){
 // === REFRESH ===
 async function doRefresh(){
   const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='Refreshing...';
-  try{await fetch('/api/refresh',{method:'POST'});
+  progressStart(3,'Refreshing cache from Adjust API...');
+  try{
+    progressStep('Sending refresh request...');
+    await fetch('/api/refresh',{method:'POST'});
+    progressStep('Waiting for API response...');
     await new Promise(r=>setTimeout(r,5000));
     allCampaigns=[];allCountries=[];roasData=null;cohortData=null;
+    progressStep('Reloading dashboard...');
     await init();
   }catch(e){}
+  progressDone();
   btn.disabled=false;btn.textContent='Refresh Cache';
 }
 
@@ -1203,10 +1466,14 @@ async function applyFilter(btn,callback){
   btn.disabled=true;
   btn.textContent='Applying...';
   btn.classList.add('applying');
+  progressStart(1,'Applying filter...');
   try{
     await callback();
+    progressStep('Done');
+    progressDone();
   }catch(e){
     console.error('Apply error:',e);
+    progressDone();
   }
   btn.disabled=false;
   btn.textContent=origText;

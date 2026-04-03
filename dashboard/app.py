@@ -33,19 +33,60 @@ app = FastAPI(title="Adjust Analytics Dashboard")
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
 # Map app filter name to specific token for fast single-token queries
-# APL389 token — hardcoded for speed and accuracy
-APL389_TOKEN = "p9aujhwyqvi8"
+# All app token mappings
+APP_TOKEN_MAP = {
+    "apl389": "p9aujhwyqvi8",
+    "asm044": "aeupo1b24f0g",
+    "apb855": "r1tcow9gnk74",
+    "apb518": "y83milcrp2ww",
+    "apl868": "im4w2s8bowzk",
+    "asm035": "og7ep0ixuzgg",
+    "apb508": "yrfr0dt381s0",
+    "asm014": "kbupv7xsze2o",
+    "apb666": "zrqw3h1f0n40",
+    "apl789": "jo3hic4y2g3k",
+    "apl469": "47pyi6fniq4g",
+    "asm057": "hxylh1wy6mm8",
+    "asm069": "f8gfj20m8mio",
+}
+APP_NAME_MAP = {
+    "p9aujhwyqvi8": "APL389 - Photo Video Maker",
+    "aeupo1b24f0g": "ASM044 - Birthday Video Maker",
+    "r1tcow9gnk74": "APB855 - AI Chat",
+    "y83milcrp2ww": "APB518 - AI Face Swap AI Avatar Magic",
+    "im4w2s8bowzk": "APL868 - Vidix AI Photo Video",
+    "og7ep0ixuzgg": "ASM035 - Photo Video Maker with Music",
+    "yrfr0dt381s0": "APB508 - AI Chat",
+    "kbupv7xsze2o": "ASM014 - Mica - AI Photo & Video Maker",
+    "zrqw3h1f0n40": "APB666 - Picshiner",
+    "jo3hic4y2g3k": "APL789 - Snap Tune AI",
+    "47pyi6fniq4g": "APL469 - AI Photo Creator",
+    "hxylh1wy6mm8": "ASM057 - Micy Prank",
+    "f8gfj20m8mio": "ASM069 - FotoPro",
+}
+DEFAULT_TOKEN = "p9aujhwyqvi8"
 
 
 async def _resolve_app_token(app_filter):
     """Return the single token for the app. Default: APL389."""
     if not app_filter:
-        return APL389_TOKEN
+        return DEFAULT_TOKEN
     af = app_filter.lower()
-    if "apl389" in af:
-        return APL389_TOKEN
-    # For other apps, use all tokens (rare case)
-    return os.getenv("ADJUST_APP_TOKENS", "")
+    # Try direct match from map
+    for prefix, token in APP_TOKEN_MAP.items():
+        if prefix in af:
+            return token
+    return DEFAULT_TOKEN
+
+
+@app.get("/api/app_list")
+async def app_list(request: Request):
+    """Return all available apps with tokens and names."""
+    if not _is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    apps = [{"token": t, "code": c, "name": APP_NAME_MAP.get(t, c)}
+            for c, t in APP_TOKEN_MAP.items()]
+    return JSONResponse({"apps": apps, "default": "apl389"})
 
 # Auth config
 DASHBOARD_USERNAME = os.getenv("DASHBOARD_USERNAME", "admin")
@@ -195,15 +236,38 @@ async def get_overview(
 ):
     if not _is_authenticated(request):
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    # Try cache first
     cached = load_cache()
     rows = _filter_rows(cached.get("all_rows", []), app_filter, start, end)
+
+    # If cache empty for this app, fetch live
+    if not rows:
+        s = start or (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+        e = end or datetime.today().strftime("%Y-%m-%d")
+        dp = f"{s}:{e}"
+        tk = await _resolve_app_token(app_filter)
+        headers_api = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
+        q = "&".join([
+            f"app_token__in={tk}", f"date_period={dp}",
+            "dimensions=day,app",
+            "metrics=installs,clicks,impressions,network_cost,revenue,ecpi_all,sessions,daus,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+            "attribution_source=first", "utc_offset=%2B07:00",
+            "sort=-installs", "limit=1000", "format=json",
+        ])
+        url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.get(url, headers=headers_api)
+            if resp.status_code == 200:
+                rows = resp.json().get("rows", [])
+
     overview = compute_overview(rows)
     anomalies = detect_anomalies(overview["daily"])
     return JSONResponse({
         **overview,
         "anomalies": anomalies,
-        "fetched_at": cached.get("fetched_at"),
-        "errors": cached.get("errors", []),
+        "fetched_at": cached.get("fetched_at") or datetime.now(timezone.utc).isoformat(),
+        "errors": [],
     })
 
 
@@ -218,6 +282,24 @@ async def get_trend(
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
     cached = load_cache()
     rows = _filter_rows(cached.get("all_rows", []), app_filter, start, end)
+    if not rows:
+        s = start or (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+        e = end or datetime.today().strftime("%Y-%m-%d")
+        dp = f"{s}:{e}"
+        tk = await _resolve_app_token(app_filter)
+        headers_api = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
+        q = "&".join([
+            f"app_token__in={tk}", f"date_period={dp}",
+            "dimensions=day,app",
+            "metrics=installs,network_cost,revenue,revenue_total_d0,revenue_total_d7",
+            "attribution_source=first", "utc_offset=%2B07:00",
+            "sort=-installs", "limit=1000", "format=json",
+        ])
+        url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.get(url, headers=headers_api)
+            if resp.status_code == 200:
+                rows = resp.json().get("rows", [])
     trend = daily_by_app(rows)
     return JSONResponse({"trend": trend, "fetched_at": cached.get("fetched_at")})
 
@@ -233,8 +315,26 @@ async def get_performance(
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
     cached = load_cache()
     rows = _filter_rows(cached.get("all_rows", []), app_filter, start, end)
+    if not rows:
+        s = start or (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+        e = end or datetime.today().strftime("%Y-%m-%d")
+        dp = f"{s}:{e}"
+        tk = await _resolve_app_token(app_filter)
+        headers_api = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
+        q = "&".join([
+            f"app_token__in={tk}", f"date_period={dp}",
+            "dimensions=day,app",
+            "metrics=installs,network_cost,revenue,sessions,daus,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+            "attribution_source=first", "utc_offset=%2B07:00",
+            "sort=-installs", "limit=1000", "format=json",
+        ])
+        url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.get(url, headers=headers_api)
+            if resp.status_code == 200:
+                rows = resp.json().get("rows", [])
     apps = app_comparison(rows)
-    return JSONResponse({"apps": apps, "fetched_at": cached.get("fetched_at")})
+    return JSONResponse({"apps": apps, "fetched_at": cached.get("fetched_at") or datetime.now(timezone.utc).isoformat()})
 
 
 @app.get("/api/countries")
@@ -353,8 +453,8 @@ async def country_daily(
         "totals": {
             "installs": t_inst, "cost": round(t_cost, 2), "revenue": round(t_rev, 2),
             "rev_d0": round(t_rd0, 2), "rev_d7": round(t_rd7, 2),
-            "roas_d0": round(t_rd0 / t_cost, 2) if t_cost > 0 else 0,
-            "roas_d7": round(t_rd7 / t_cost, 2) if t_cost > 0 else 0,
+            "roas_d0": round(t_rd0 / t_cost * 100, 2) if t_cost > 0 else 0,
+            "roas_d7": round(t_rd7 / t_cost * 100, 2) if t_cost > 0 else 0,
             "ltv_d0": round(t_rd0 / t_inst, 4) if t_inst > 0 else 0,
             "ltv_d7": round(t_rd7 / t_inst, 4) if t_inst > 0 else 0,
             "ecpi": round(t_cost / t_inst, 3) if t_inst > 0 else 0,
@@ -554,6 +654,249 @@ async def cohort_report(
     return JSONResponse(result)
 
 
+@app.get("/api/business_view")
+async def business_view(
+    request: Request,
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+):
+    """Business View: KPIs, trends, patterns, alerts for CEO."""
+    if not _is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    s30 = start or (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+    e30 = end or datetime.today().strftime("%Y-%m-%d")
+    dp = f"{s30}:{e30}"
+
+    # Previous period for comparison
+    days_range = (datetime.strptime(e30, "%Y-%m-%d") - datetime.strptime(s30, "%Y-%m-%d")).days
+    prev_end = (datetime.strptime(s30, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    prev_start = (datetime.strptime(prev_end, "%Y-%m-%d") - timedelta(days=days_range)).strftime("%Y-%m-%d")
+    dp_prev = f"{prev_start}:{prev_end}"
+
+    tk = await _resolve_app_token("APL389")
+    hdrs = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
+    metrics = "installs,network_cost,revenue,sessions,daus,ecpi_all,revenue_total_d0,revenue_total_d7"
+
+    import asyncio as _aio3
+
+    async def _bv_fetch(period, dims, limit=1000):
+        q = "&".join([
+            f"app_token__in={tk}", f"date_period={period}",
+            f"dimensions={dims}", f"metrics={metrics}",
+            "attribution_source=first", "utc_offset=%2B07:00",
+            f"sort=-installs", f"limit={limit}", "format=json",
+        ])
+        url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.get(url, headers=hdrs)
+            if resp.status_code != 200:
+                return {"rows": [], "totals": {}}
+            data = resp.json()
+            return {"rows": data.get("rows", []), "totals": data.get("totals", {})}
+
+    # Parallel fetch: current daily, current country, previous daily
+    cur_daily, cur_country, prev_daily = await _aio3.gather(
+        _bv_fetch(dp, "day,app"), _bv_fetch(dp, "country,app", 500), _bv_fetch(dp_prev, "day,app"),
+    )
+
+    def _f(v): return float(v) if v else 0.0
+
+    def _agg(rows):
+        t = {"installs": 0, "cost": 0, "revenue": 0, "sessions": 0, "daus": 0, "rd0": 0, "rd7": 0}
+        for r in rows:
+            t["installs"] += _f(r.get("installs"))
+            t["cost"] += _f(r.get("network_cost", r.get("cost", 0)))
+            t["revenue"] += _f(r.get("revenue"))
+            t["sessions"] += _f(r.get("sessions"))
+            t["daus"] += _f(r.get("daus"))
+            t["rd0"] += _f(r.get("revenue_total_d0"))
+            t["rd7"] += _f(r.get("revenue_total_d7"))
+        return t
+
+    cur = _agg(cur_daily["rows"])
+    prev = _agg(prev_daily["rows"])
+
+    def _pct(c, p): return round((c - p) / p * 100, 1) if p else 0
+
+    profit = cur["revenue"] - cur["cost"]
+    prev_profit = prev["revenue"] - prev["cost"]
+    ecpi_cur = cur["cost"] / cur["installs"] if cur["installs"] else 0
+    ecpi_prev = prev["cost"] / prev["installs"] if prev["installs"] else 0
+    roas_cur = cur["rd7"] / cur["cost"] * 100 if cur["cost"] else 0
+    roas_prev = prev["rd7"] / prev["cost"] * 100 if prev["cost"] else 0
+
+    kpis = {
+        "revenue": {"current": round(cur["revenue"], 2), "previous": round(prev["revenue"], 2), "change": _pct(cur["revenue"], prev["revenue"])},
+        "cost": {"current": round(cur["cost"], 2), "previous": round(prev["cost"], 2), "change": _pct(cur["cost"], prev["cost"])},
+        "profit": {"current": round(profit, 2), "previous": round(prev_profit, 2), "change": _pct(profit, prev_profit)},
+        "roas": {"current": round(roas_cur, 2), "previous": round(roas_prev, 2), "change": round(roas_cur - roas_prev, 2)},
+        "installs": {"current": int(cur["installs"]), "previous": int(prev["installs"]), "change": _pct(cur["installs"], prev["installs"])},
+        "ecpi": {"current": round(ecpi_cur, 4), "previous": round(ecpi_prev, 4), "change": _pct(ecpi_cur, ecpi_prev)},
+    }
+
+    # Daily series
+    daily = []
+    for r in sorted(cur_daily["rows"], key=lambda x: x.get("day", "")):
+        cost = _f(r.get("network_cost", r.get("cost", 0)))
+        rev = _f(r.get("revenue"))
+        rd7 = _f(r.get("revenue_total_d7"))
+        daily.append({
+            "date": r.get("day", ""),
+            "revenue": round(rev, 2), "cost": round(cost, 2),
+            "profit": round(rev - cost, 2),
+            "installs": int(_f(r.get("installs"))),
+            "roas_d7": round(rd7 / cost * 100, 2) if cost else 0,
+            "daus": int(_f(r.get("daus"))),
+        })
+
+    # 7-day moving average ROAS
+    for i, d in enumerate(daily):
+        window = daily[max(0, i - 6):i + 1]
+        d["roas_ma7"] = round(sum(x["roas_d7"] for x in window) / len(window), 2) if window else 0
+
+    # Top countries
+    countries = []
+    for r in sorted(cur_country["rows"], key=lambda x: _f(x.get("revenue")), reverse=True)[:10]:
+        cost = _f(r.get("network_cost", r.get("cost", 0)))
+        rev = _f(r.get("revenue"))
+        rd7 = _f(r.get("revenue_total_d7"))
+        countries.append({
+            "country": r.get("country", ""),
+            "revenue": round(rev, 2), "cost": round(cost, 2),
+            "profit": round(rev - cost, 2),
+            "roas_d7": round(rd7 / cost * 100, 2) if cost else 0,
+            "installs": int(_f(r.get("installs"))),
+        })
+
+    # Week comparison (last 7 vs previous 7)
+    if len(daily) >= 14:
+        w1 = daily[-7:]
+        w2 = daily[-14:-7]
+    elif len(daily) >= 7:
+        w1 = daily[-7:]
+        w2 = daily[:len(daily) - 7] if len(daily) > 7 else w1
+    else:
+        w1 = daily
+        w2 = daily
+
+    def _wagg(ds):
+        return {
+            "installs": sum(d["installs"] for d in ds),
+            "revenue": round(sum(d["revenue"] for d in ds), 2),
+            "cost": round(sum(d["cost"] for d in ds), 2),
+            "profit": round(sum(d["profit"] for d in ds), 2),
+            "roas": round(sum(d["roas_d7"] for d in ds) / len(ds), 2) if ds else 0,
+            "daus": round(sum(d["daus"] for d in ds) / len(ds)),
+        }
+
+    week_cur = _wagg(w1)
+    week_prev = _wagg(w2)
+    week_comp = {}
+    for k in week_cur:
+        c, p = week_cur[k], week_prev[k]
+        week_comp[k] = {"current": c, "previous": p, "change": _pct(c, p)}
+
+    # Alerts
+    alerts = []
+    if roas_cur < 100:
+        alerts.append({"type": "danger", "msg": f"ROAS trung b\u00ECnh \u0111ang d\u01B0\u1EDBi 100% ({roas_cur:.1f}%). C\u1EA7n t\u1ED1i \u01B0u chi\u1EBFn l\u01B0\u1EE3c UA."})
+    if kpis["cost"]["change"] > 20 and kpis["revenue"]["change"] < 5:
+        alerts.append({"type": "warning", "msg": f"Chi ph\u00ED t\u0103ng {kpis['cost']['change']}% nh\u01B0ng doanh thu ch\u1EC9 t\u0103ng {kpis['revenue']['change']}%."})
+    if kpis["installs"]["change"] < -15:
+        alerts.append({"type": "danger", "msg": f"L\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t gi\u1EA3m {abs(kpis['installs']['change'])}% so v\u1EDBi k\u1EF3 tr\u01B0\u1EDBc."})
+    if profit > 0:
+        alerts.append({"type": "success", "msg": f"S\u1EA3n ph\u1EA9m \u0111ang c\u00F3 l\u00E3i r\u00F2ng ${profit:,.0f} trong k\u1EF3 n\u00E0y."})
+    for c in countries[:5]:
+        if c["roas_d7"] > 150:
+            alerts.append({"type": "success", "msg": f"Th\u1ECB tr\u01B0\u1EDDng {c['country']} \u0111ang t\u0103ng tr\u01B0\u1EDFng m\u1EA1nh v\u1EDBi ROAS {c['roas_d7']}%."})
+    for c in countries:
+        if c["roas_d7"] < 80 and c["cost"] > 500:
+            alerts.append({"type": "danger", "msg": f"Th\u1ECB tr\u01B0\u1EDDng {c['country']} ROAS ch\u1EC9 {c['roas_d7']}% v\u1EDBi chi ph\u00ED ${c['cost']:,.0f}."})
+    # 3 consecutive days ROAS < 100
+    if len(daily) >= 3 and all(d["roas_d7"] < 100 for d in daily[-3:]):
+        alerts.append({"type": "danger", "msg": "ROAS d\u01B0\u1EDBi 100% trong 3 ng\u00E0y li\u00EAn ti\u1EBFp. C\u1EA7n h\u00E0nh \u0111\u1ED9ng ngay."})
+
+    return JSONResponse({
+        "kpis": kpis, "daily": daily, "countries": countries,
+        "week_comparison": week_comp, "alerts": alerts,
+        "period": {"current": dp, "previous": dp_prev},
+    })
+
+
+@app.post("/api/ai_insights")
+async def ai_insights(request: Request):
+    """Call Claude API for Vietnamese business insights."""
+    if not _is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    body = await request.json()
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return JSONResponse({"error": "ANTHROPIC_API_KEY not configured"}, status_code=500)
+
+    kpis = body.get("kpis", {})
+    countries = body.get("countries", [])[:5]
+    alerts = body.get("alerts", [])
+    week = body.get("week_comparison", {})
+
+    data_summary = f"""
+D\u1EEF li\u1EC7u APL389 - Photo Video Maker:
+
+KPI ch\u00EDnh:
+- Doanh thu: ${kpis.get('revenue',{}).get('current',0):,.0f} (thay \u0111\u1ED5i: {kpis.get('revenue',{}).get('change',0)}%)
+- Chi ph\u00ED QC: ${kpis.get('cost',{}).get('current',0):,.0f} (thay \u0111\u1ED5i: {kpis.get('cost',{}).get('change',0)}%)
+- L\u1EE3i nhu\u1EADn: ${kpis.get('profit',{}).get('current',0):,.0f} (thay \u0111\u1ED5i: {kpis.get('profit',{}).get('change',0)}%)
+- ROAS D7: {kpis.get('roas',{}).get('current',0)}%
+- T\u1ED5ng installs: {kpis.get('installs',{}).get('current',0):,}
+- eCPI: ${kpis.get('ecpi',{}).get('current',0)}
+
+So s\u00E1nh 7 ng\u00E0y g\u1EA7n nh\u1EA5t vs 7 ng\u00E0y tr\u01B0\u1EDBc:
+- Installs: {week.get('installs',{}).get('current',0):,} vs {week.get('installs',{}).get('previous',0):,} ({week.get('installs',{}).get('change',0)}%)
+- Revenue: ${week.get('revenue',{}).get('current',0):,.0f} vs ${week.get('revenue',{}).get('previous',0):,.0f} ({week.get('revenue',{}).get('change',0)}%)
+- ROAS: {week.get('roas',{}).get('current',0)}% vs {week.get('roas',{}).get('previous',0)}%
+
+Top 5 th\u1ECB tr\u01B0\u1EDDng:
+""" + "\n".join(f"- {c['country']}: Revenue ${c['revenue']:,.0f}, Cost ${c['cost']:,.0f}, ROAS {c['roas_d7']}%" for c in countries)
+
+    if alerts:
+        data_summary += "\n\nC\u1EA3nh b\u00E1o:\n" + "\n".join(f"- {a['msg']}" for a in alerts[:5])
+
+    prompt = f"""B\u1EA1n l\u00E0 chuy\u00EAn gia ph\u00E2n t\u00EDch kinh doanh mobile app. D\u1EF1a tr\u00EAn d\u1EEF li\u1EC7u sau, h\u00E3y ph\u00E2n t\u00EDch v\u00E0 \u0111\u01B0a ra g\u1EE3i \u00FD b\u1EB1ng ti\u1EBFng Vi\u1EC7t c\u00F3 d\u1EA5u.
+
+{data_summary}
+
+H\u00E3y tr\u1EA3 l\u1EDDi theo 3 ph\u1EA7n:
+1. \u0110I\u1EC2M T\u1ED0T - \u0110i\u1EC1u g\u00EC \u0111ang ho\u1EA1t \u0111\u1ED9ng t\u1ED1t
+2. \u0110I\u1EC2M C\u1EA6N C\u1EA2I THI\u1EC6N - \u0110i\u1EC1u g\u00EC \u0111ang c\u00F3 v\u1EA5n \u0111\u1EC1
+3. G\u1EE2I \u00DD H\u00C0NH \u0110\u1ED8NG - G\u1EE3i \u00FD c\u1EE5 th\u1EC3 \u0111\u1EC3 c\u1EA3i thi\u1EC7n
+
+M\u1ED7i ph\u1EA7n 3-5 \u0111i\u1EC3m ng\u1EAFn g\u1ECDn, th\u1EF1c t\u1EBF."""
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 1500,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+            if resp.status_code != 200:
+                return JSONResponse({"error": f"Claude API: {resp.text[:300]}"}, status_code=502)
+            result = resp.json()
+            text = result.get("content", [{}])[0].get("text", "")
+            return JSONResponse({"insights": text, "generated_at": datetime.now(timezone.utc).isoformat()})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/api/roas")
 async def roas_data(
     request: Request,
@@ -621,10 +964,10 @@ async def roas_data(
             "cost": round(cost, 2),
             "revenue": round(float(r.get("revenue", 0)), 2),
             "rev_d0": round(rd0, 2), "rev_d7": round(rd7, 2),
-            "roas_d0": round(rd0 / cost, 2) if cost > 0 else 0,
-            "roas_d1": round(rd1 / cost, 2) if cost > 0 else 0,
-            "roas_d3": round(rd3 / cost, 2) if cost > 0 else 0,
-            "roas_d7": round(rd7 / cost, 2) if cost > 0 else 0,
+            "roas_d0": round(rd0 / cost * 100, 2) if cost > 0 else 0,
+            "roas_d1": round(rd1 / cost * 100, 2) if cost > 0 else 0,
+            "roas_d3": round(rd3 / cost * 100, 2) if cost > 0 else 0,
+            "roas_d7": round(rd7 / cost * 100, 2) if cost > 0 else 0,
         })
 
     # Build country ROAS
@@ -639,9 +982,9 @@ async def roas_data(
             "installs": int(float(r.get("installs", 0))),
             "cost": round(cost, 2),
             "revenue": round(rev, 2),
-            "roas": round(rd7 / cost, 2) if cost > 0 else 0,
-            "roas_d0": round(rd0 / cost, 2) if cost > 0 else 0,
-            "roas_d7": round(rd7 / cost, 2) if cost > 0 else 0,
+            "roas": round(rd7 / cost * 100, 2) if cost > 0 else 0,
+            "roas_d0": round(rd0 / cost * 100, 2) if cost > 0 else 0,
+            "roas_d7": round(rd7 / cost * 100, 2) if cost > 0 else 0,
         })
 
     # Totals
@@ -658,8 +1001,8 @@ async def roas_data(
         "totals": {
             "cost": round(t_cost, 2),
             "revenue": round(t_rev, 2),
-            "roas_d0": round(t_rd0 / t_cost, 2) if t_cost > 0 else 0,
-            "roas_d7": round(t_rd7 / t_cost, 2) if t_cost > 0 else 0,
+            "roas_d0": round(t_rd0 / t_cost * 100, 2) if t_cost > 0 else 0,
+            "roas_d7": round(t_rd7 / t_cost * 100, 2) if t_cost > 0 else 0,
         },
     })
 
