@@ -459,7 +459,7 @@ async def cohort_report(
     af = (app_filter or "").lower()
     app_tokens_str = await _resolve_app_token(app_filter)
 
-    cohort_m = "installs,daus,cost,ecpi_all,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7,revenue_total_d14,revenue_total_d21,revenue_total_d28,revenue_total_d35,revenue_total_d45,revenue_total_d60,revenue_total_d90"
+    cohort_m = "installs,daus,cost,ecpi_all,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7,revenue_total_d14,revenue_total_d21,revenue_total_d28,roas_d0,roas_d1,roas_d3,roas_d7,roas_d14,roas_d21,roas_d28"
 
     async def _fetch(dims, limit=1000):
         q = "&".join([
@@ -500,60 +500,55 @@ async def cohort_report(
         daily_raw = [r for r in daily_raw if af in r.get("app", "").lower()]
         country_raw = [r for r in country_raw if af in r.get("app", "").lower()]
 
-    DAYS = [0, 1, 3, 7, 14, 21, 28, 35, 45, 60, 90]
+    ROAS_DAYS = [0, 1, 3, 7, 14, 21, 28]
+    LTV_DAYS = [0, 1, 3, 7, 14, 21, 28]
 
     def parse(r, key):
         inst = float(r.get("installs", 0))
         daus = float(r.get("daus", 0))
-        cost = float(r.get("cost", 0))  # Ad Spend (network)
-        ecpi = float(r.get("ecpi_all", 0))  # eCPI(all) from Adjust
-        rev = float(r.get("revenue", 0))  # total revenue
+        cost = float(r.get("cost", 0))
+        rev = float(r.get("revenue", 0))
         row = {
             "group": r.get(key, ""),
             "installs": int(inst),
             "cohort_users_d0": int(daus),
             "install_per_user": round(inst / daus, 2) if daus > 0 else 0,
-            "cost": round(cost, 2),  # Ad Spend (network)
-            "ecpi": round(ecpi, 4),  # eCPI(all) from API
+            "cost": round(cost, 2),
+            "ecpi": float(r.get("ecpi_all", 0)),
             "cpu": round(cost / daus, 4) if daus > 0 else 0,
             "revenue": round(rev, 2),
-            # ROAS All = revenue (total) / cost (Ad Spend) * 100
             "roas_all": round(rev / cost * 100, 2) if cost > 0 else 0,
         }
-        for d in DAYS:
-            # Ad Revenue (cohort) Dx
+        for d in LTV_DAYS:
             rv = float(r.get(f"revenue_total_d{d}", 0))
-            # LTV Dx = Ad Revenue Cohort Dx / installs
-            ltv = rv / inst if inst > 0 else 0
-            # ROAS Dx = Ad Revenue Cohort Dx / Ad Spend (network) * 100
-            roas = rv / cost * 100 if cost > 0 else 0
-            row[f"ltv_d{d}"] = round(ltv, 4)
-            row[f"roas_d{d}"] = round(roas, 2)
+            row[f"ltv_d{d}"] = round(rv / inst, 4) if inst > 0 else 0
             row[f"rev_d{d}"] = round(rv, 2)
+        for d in ROAS_DAYS:
+            row[f"roas_d{d}"] = float(r.get(f"roas_d{d}", 0))
         return row
 
     def totals(raw):
         ti = sum(float(r.get("installs", 0)) for r in raw)
         td = sum(float(r.get("daus", 0)) for r in raw)
-        tc = sum(float(r.get("cost", 0)) for r in raw)  # Ad Spend (network)
+        tc = sum(float(r.get("cost", 0)) for r in raw)
         tr = sum(float(r.get("revenue", 0)) for r in raw)
-        ecpi = tc / ti if ti > 0 else 0  # weighted eCPI
         t = {
             "group": "TOTAL", "installs": int(ti), "cohort_users_d0": int(td),
             "install_per_user": round(ti / td, 2) if td > 0 else 0,
-            "cost": round(tc, 2), "ecpi": round(ecpi, 4),
+            "cost": round(tc, 2),
+            "ecpi": round(tc / ti, 4) if ti > 0 else 0,
             "cpu": round(tc / td, 4) if td > 0 else 0,
             "revenue": round(tr, 2),
             "roas_all": round(tr / tc * 100, 2) if tc > 0 else 0,
         }
-        for d in DAYS:
-            # Ad Revenue (cohort) Dx
+        for d in LTV_DAYS:
             rv = sum(float(r.get(f"revenue_total_d{d}", 0)) for r in raw)
-            ltv = rv / ti if ti > 0 else 0
-            roas = rv / tc * 100 if tc > 0 else 0
-            t[f"ltv_d{d}"] = round(ltv, 4)
-            t[f"roas_d{d}"] = round(roas, 2)
+            t[f"ltv_d{d}"] = round(rv / ti, 4) if ti > 0 else 0
             t[f"rev_d{d}"] = round(rv, 2)
+        for d in ROAS_DAYS:
+            # Weighted average: sum(roas_d * installs) / sum(installs)
+            weighted = sum(float(r.get(f"roas_d{d}", 0)) * float(r.get("installs", 0)) for r in raw)
+            t[f"roas_d{d}"] = round(weighted / ti, 4) if ti > 0 else 0
         return t
 
     by_date = [parse(r, "day") for r in sorted(daily_raw, key=lambda x: x.get("day", ""))]
