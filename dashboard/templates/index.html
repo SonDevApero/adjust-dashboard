@@ -1057,7 +1057,7 @@ let cohortData=null;
 let cohortCurrency='USD';
 const VND_RATE=25000;
 const COHORT_DAYS=[0,1,3,7,14,21,28,35,45,60,90];
-const COHORT_COLS=['No.','First Open Time','Cohort User D0','Install','Install/UserD0','Cost','CPI','CPU',
+const COHORT_COLS=['No.','First Open Time','Cohort User D0','Install','Install/UserD0','Ad Spend','eCPI(all)','CPU',
   'LTV D0','LTV D3','LTV D7',
   'ROAS D0','ROAS D1','ROAS D3','ROAS D7','ROAS D14','ROAS D21','ROAS D28','ROAS D35','ROAS D45','ROAS D60','ROAS D90','ROAS All'];
 
@@ -1150,7 +1150,7 @@ function cohortCells(num,r){
   cells+=`<td>${fN(r.installs)}</td>`;
   cells+=`<td>${r.install_per_user||'-'}</td>`;
   cells+=`<td>${cs}${cohortFmtM(r.cost)}</td>`;
-  cells+=`<td>${cs}${cohortFmtM(r.cpi)}</td>`;
+  cells+=`<td>${cs}${cohortFmtM(r.ecpi||0)}</td>`;
   cells+=`<td>${cs}${cohortFmtM(r.cpu)}</td>`;
   // LTV D0, D3, D7
   cells+=`<td>${cs}${cohortFmtM(r.ltv_d0||0)}</td>`;
@@ -1173,7 +1173,7 @@ function exportCohortCSV(){
   const header=COHORT_COLS.join(',')+'\n';
   let csv=header;
   rows.forEach((r,i)=>{
-    csv+=[i+1,r.group,r.cohort_users_d0,r.installs,r.install_per_user,r.cost,r.cpi,r.cpu,
+    csv+=[i+1,r.group,r.cohort_users_d0,r.installs,r.install_per_user,r.cost,r.ecpi||0,r.cpu,
       r.ltv_d0||0,r.ltv_d3||0,r.ltv_d7||0,
       ...COHORT_DAYS.map(d=>(r['roas_d'+d]||0)+'%'),
       (r.roas_all||0)+'%'
@@ -1181,7 +1181,7 @@ function exportCohortCSV(){
   });
   if(cohortData.totals_date){
     const t=cohortData.totals_date;
-    csv+=['','TOTAL',t.cohort_users_d0,t.installs,t.install_per_user,t.cost,t.cpi,t.cpu,
+    csv+=['','TOTAL',t.cohort_users_d0,t.installs,t.install_per_user,t.cost,t.ecpi||0,t.cpu,
       t.ltv_d0||0,t.ltv_d3||0,t.ltv_d7||0,
       ...COHORT_DAYS.map(d=>(t['roas_d'+d]||0)+'%'),
       (t.roas_all||0)+'%'
