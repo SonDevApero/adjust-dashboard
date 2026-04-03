@@ -877,82 +877,83 @@ function generateCountryAnalysis(days, t, country){
 // === TAB 5: ROAS ===
 async function loadRoas(){
   try{
-    const r=await(await fetch('/api/roas')).json();
-    if(r.error){document.querySelector('#tab-roas').innerHTML=`<p style="color:var(--red);padding:20px">${r.error}</p>`;return;}
+    const r=await(await fetch('/api/roas'+Q())).json();
+    if(r.error){document.getElementById('analysisRoas').textContent=r.error;return;}
     roasData=r;
     renderRoas();
-  }catch(e){console.error(e);}
+  }catch(e){console.error('roas',e);}
 }
 function renderRoas(){
   const d=roasData;
   const daily=d.apl389_daily||[];
   const bc=d.apl389_by_country||[];
-  const totalCost=daily.reduce((s,x)=>s+x.cost,0);
-  const totalRev=daily.reduce((s,x)=>s+x.revenue,0);
-  const overallRoas=totalCost>0?(totalRev/totalCost).toFixed(2):0;
-  const bestC=bc.length?bc.reduce((a,b)=>a.roas>b.roas?a:b):{};
+  const t=d.totals||{};
+  const totalCost=t.cost||0;
+  const totalRev=t.revenue||0;
+  const overallRoasD7=t.roas_d7||0;
+  const overallRoasD0=t.roas_d0||0;
+  const bestC=bc.length?bc.reduce((a,b)=>(a.roas_d7||0)>(b.roas_d7||0)?a:b):{};
 
   document.getElementById('roasKpis').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Ad Spend</div><div class="kpi-value">${fM(totalCost)}</div><div class="kpi-sub">7 days</div></div>
+    <div class="kpi"><div class="kpi-label">Ad Spend</div><div class="kpi-value">${fM(totalCost)}</div></div>
     <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value">${fM(totalRev)}</div></div>
-    <div class="kpi" style="border-color:${overallRoas>=1.3?'var(--green)':overallRoas>=1?'var(--amber)':'var(--red)'}"><div class="kpi-label">Overall ROAS</div><div class="kpi-value">${overallRoas}x</div></div>
-    <div class="kpi" style="border-color:var(--green)"><div class="kpi-label">Best Country ROAS</div><div class="kpi-value">${bestC.roas||0}x</div><div class="kpi-sub">${bestC.country||'-'}</div></div>
+    <div class="kpi" style="border-color:${roasColor(overallRoasD7)}"><div class="kpi-label">ROAS Cohort D7</div><div class="kpi-value">${overallRoasD7}x</div><div class="kpi-sub">D0: ${overallRoasD0}x</div></div>
+    <div class="kpi" style="border-color:var(--green)"><div class="kpi-label">Best Country</div><div class="kpi-value">${bestC.roas_d7||0}x</div><div class="kpi-sub">${bestC.country||'-'}</div></div>
   `;
 
+  // Daily ROAS cohort chart
+  destroyChart('roasTrend');
   if(daily.length){
-    destroyChart('roasTrend');
-    charts.roasTrend=new Chart(document.getElementById('roasTrend'),{type:'line',data:{
+    const pr=daily.length<=2?4:2;
+    charts.roasTrend=new Chart(document.getElementById('roasTrend'),{type:daily.length===1?'bar':'line',data:{
       labels:daily.map(x=>x.date.slice(5)),
-      datasets:[{label:'ROAS',data:daily.map(x=>x.roas),borderColor:'#f59e0b',borderWidth:3,tension:.3,pointRadius:4,
-        pointBackgroundColor:daily.map(x=>x.roas>=1.3?'#10b981':x.roas>=1?'#f59e0b':'#ef4444'),fill:false}]
-    },options:{responsive:true,plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-      scales:{x:{ticks:{color:'#6b7280'},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0,suggestedMax:2}}
+      datasets:[
+        {label:'ROAS D0',data:daily.map(x=>x.roas_d0),borderColor:'#ef4444',backgroundColor:'#ef444455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
+        {label:'ROAS D1',data:daily.map(x=>x.roas_d1),borderColor:'#f59e0b',backgroundColor:'#f59e0b55',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
+        {label:'ROAS D3',data:daily.map(x=>x.roas_d3),borderColor:'#06b6d4',backgroundColor:'#06b6d455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
+        {label:'ROAS D7',data:daily.map(x=>x.roas_d7),borderColor:'#10b981',backgroundColor:'#10b98155',borderWidth:3,tension:.3,pointRadius:pr,fill:false},
+      ]
+    },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#6b7280'},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0}}
     }});
   }
 
-  // Country ROAS bar
-  const sortedC=[...bc].sort((a,b)=>b.roas-a.roas).slice(0,10);
+  // Country ROAS D7 bar
+  const sortedC=[...bc].sort((a,b)=>(b.roas_d7||0)-(a.roas_d7||0)).slice(0,10);
   destroyChart('roasCampaign');
-  charts.roasCampaign=new Chart(document.getElementById('roasCampaign'),{type:'bar',data:{
-    labels:sortedC.map(a=>a.country),
-    datasets:[{data:sortedC.map(a=>a.roas),
-      backgroundColor:sortedC.map(a=>a.roas>=1.3?'#10b98188':a.roas>=1?'#f59e0b88':'#ef444488'),
-      borderColor:sortedC.map(a=>a.roas>=1.3?'#10b981':a.roas>=1?'#f59e0b':'#ef4444'),
-      borderWidth:1,borderRadius:3}]
-  },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
-    scales:{x:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
-  }});
+  if(sortedC.length){
+    charts.roasCampaign=new Chart(document.getElementById('roasCampaign'),{type:'bar',data:{
+      labels:sortedC.map(a=>a.country),
+      datasets:[{data:sortedC.map(a=>a.roas_d7),
+        backgroundColor:sortedC.map(a=>(a.roas_d7||0)>=1.3?'#10b98188':(a.roas_d7||0)>=1?'#f59e0b88':'#ef444488'),
+        borderColor:sortedC.map(a=>(a.roas_d7||0)>=1.3?'#10b981':(a.roas_d7||0)>=1?'#f59e0b':'#ef4444'),
+        borderWidth:1,borderRadius:3}]
+    },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
+    }});
+  }
 
-  // Country ROAS table with cohort
+  // Table with real cohort data
   document.getElementById('roasBody').innerHTML=bc.map(a=>{
-    const r7=a.roas||0;const label=r7>=1.5?'Good':r7>=1?'Even':'Bad';
+    const r7=a.roas_d7||0;const label=r7>=1.5?'Good':r7>=1?'Even':'Bad';
     const badge=r7>=1.5?'badge-good':r7>=1?'badge-warn':'badge-bad';
-    // Approximate cohort from available data
-    const rd0=a.cost>0?((a.revenue*0.85)/a.cost).toFixed(2):0;
-    const rd1=a.cost>0?((a.revenue*0.88)/a.cost).toFixed(2):0;
-    const rd3=a.cost>0?((a.revenue*0.93)/a.cost).toFixed(2):0;
     return `<tr><td style="font-weight:600">${esc(a.country)}</td><td>${fM(a.cost)}</td>
-      <td>${fM(a.revenue*0.85)}</td><td>${fM(a.revenue)}</td>
-      <td class="${roasCls(rd0)}">${rd0}x</td><td class="${roasCls(rd1)}">${rd1}x</td>
-      <td class="${roasCls(rd3)}">${rd3}x</td><td class="${roasCls(r7)}" style="font-weight:700">${r7}x</td>
+      <td>${fM(a.revenue)}</td><td>${fM(a.revenue)}</td>
+      <td class="${roasCls(a.roas_d0||0)}">${a.roas_d0||0}x</td><td>-</td>
+      <td>-</td><td class="${roasCls(r7)}" style="font-weight:700">${r7}x</td>
       <td><span class="badge ${badge}">${label}</span></td></tr>`;
   }).join('');
 
-  // ROAS Analysis in Vietnamese
-  const profitable=bc.filter(c=>c.roas>=1.3);
-  const losing=bc.filter(c=>c.roas<1&&c.cost>200);
+  // Analysis
+  const profitable=bc.filter(c=>(c.roas_d7||0)>=1.3);
+  const losing=bc.filter(c=>(c.roas_d7||0)<1&&c.cost>200);
+  const range=document.getElementById('dateRange');
+  const periodLabel=range.options[range.selectedIndex].text;
   document.getElementById('analysisRoas').innerHTML=`
-    <p><strong>1. T\u1ED5ng chi ph\u00ED qu\u1EA3ng c\u00E1o:</strong> ${fM(totalCost)} trong 7 ng\u00E0y. Doanh thu: ${fM(totalRev)}. ROAS t\u1ED5ng: <span style="color:${roasColor(overallRoas)};font-weight:700">${overallRoas}x</span></p>
-    <p><strong>2. Th\u1ECB tr\u01B0\u1EDDng hi\u1EC7u qu\u1EA3 (ROAS \u22651.3x):</strong> ${profitable.map(c=>'<span class="good">'+c.country+' ('+c.roas+'x)</span>').join(', ')||'Kh\u00F4ng c\u00F3'}. \u0110\u00E2y l\u00E0 c\u00E1c th\u1ECB tr\u01B0\u1EDDng n\u00EAn \u01B0u ti\u00EAn t\u0103ng ng\u00E2n s\u00E1ch.</p>
-    ${losing.length?`<p><strong>3. Th\u1ECB tr\u01B0\u1EDDng \u0111ang l\u1ED7 (ROAS &lt;1x):</strong> ${losing.map(c=>'<span class="bad">'+c.country+' ('+c.roas+'x, chi '+fM(c.cost)+')</span>').join(', ')}. C\u1EA7n gi\u1EA3m budget ho\u1EB7c t\u1ED1i \u01B0u creative ngay.</p>`:''}
-    <p><strong>4. \u0110\u1EC1 xu\u1EA5t chi\u1EBFn l\u01B0\u1EE3c:</strong></p>
-    <ul style="margin-left:20px;margin-top:4px">
-      <li>T\u0103ng budget 20-30% cho c\u00E1c th\u1ECB tr\u01B0\u1EDDng ROAS >1.5x (n\u1EBFu c\u00F3)</li>
-      <li>Gi\u1EA3m 30-50% budget \u1EDF c\u00E1c th\u1ECB tr\u01B0\u1EDDng ROAS <1x</li>
-      <li>Refresh creative cho c\u00E1c th\u1ECB tr\u01B0\u1EDDng ROAS 1.0-1.3x \u0111\u1EC3 \u0111\u1EA9y l\u00EAn</li>
-      <li>Theo d\u00F5i ROAS D0\u2192D7 h\u00E0ng ng\u00E0y \u0111\u1EC3 ph\u00E1t hi\u1EC7n s\u1EDBm xu h\u01B0\u1EDBng gi\u1EA3m</li>
-      <li>So s\u00E1nh eCPI v\u00E0 ROAS D7 \u0111\u1EC3 t\u00ECm \u0111i\u1EC3m c\u00E2n b\u1EB1ng t\u1ED1i \u01B0u gi\u1EEFa volume v\u00E0 ch\u1EA5t l\u01B0\u1EE3ng user</li>
-    </ul>
+    <p><strong>1. T\u1ED5ng chi ph\u00ED (${periodLabel}):</strong> ${fM(totalCost)}. Doanh thu: ${fM(totalRev)}. ROAS D7: <span style="color:${roasColor(overallRoasD7)};font-weight:700">${overallRoasD7}x</span>, D0: ${overallRoasD0}x</p>
+    <p><strong>2. Th\u1ECB tr\u01B0\u1EDDng ROAS D7 \u22651.3x:</strong> ${profitable.map(c=>'<span class="good">'+c.country+' ('+c.roas_d7+'x)</span>').join(', ')||'Kh\u00F4ng c\u00F3'}.</p>
+    ${losing.length?`<p><strong>3. ROAS D7 &lt;1x:</strong> ${losing.map(c=>'<span class="bad">'+c.country+' ('+(c.roas_d7||0)+'x)</span>').join(', ')}.</p>`:''}
+    <p><strong>\u0110\u1EC1 xu\u1EA5t:</strong> T\u0103ng budget th\u1ECB tr\u01B0\u1EDDng ROAS D7>1.3x. Gi\u1EA3m/pause th\u1ECB tr\u01B0\u1EDDng ROAS D7<1x. Theo d\u00F5i ROAS D0\u2192D7 h\u00E0ng ng\u00E0y.</p>
   `;
 }
 
@@ -961,8 +962,7 @@ async function doRefresh(){
   const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='Refreshing...';
   try{await fetch('/api/refresh',{method:'POST'});
     await new Promise(r=>setTimeout(r,5000));
-    allCampaigns=[];allCountries=[];roasData=null;
-    await init();
+    await reloadAll();
   }catch(e){}
   btn.disabled=false;btn.textContent='Refresh Data';
 }

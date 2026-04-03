@@ -400,14 +400,111 @@ async def get_retention(request: Request, app_filter: Optional[str] = Query(None
 
 
 @app.get("/api/roas")
-async def roas_data(request: Request):
+async def roas_data(
+    request: Request,
+    app_filter: Optional[str] = Query("APL389", alias="app"),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
+):
+    """Fetch ROAS data live from Adjust API based on date filter."""
     if not _is_authenticated(request):
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    roas_file = Path(__file__).resolve().parent.parent / "data" / "roas_analysis.json"
-    if roas_file.exists():
-        with open(roas_file) as f:
-            return JSONResponse(_json.load(f))
-    return JSONResponse({"error": "No ROAS data."}, status_code=404)
+
+    s = start or (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+    e = end or datetime.today().strftime("%Y-%m-%d")
+    dp = f"{s}:{e}"
+    app_tokens_str = os.getenv("ADJUST_APP_TOKENS", "")
+    headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
+
+    # Fetch daily data with cohort
+    q = "&".join([
+        f"app_token__in={app_tokens_str}",
+        f"date_period={dp}",
+        "dimensions=day,app",
+        "metrics=installs,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+        "sort=-installs", "limit=1000", "format=json",
+    ])
+    url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp = await client.get(url, headers=headers)
+        if resp.status_code != 200:
+            return JSONResponse({"error": resp.text[:300]}, status_code=502)
+        daily_rows = resp.json().get("rows", [])
+
+    # Fetch country data with cohort
+    q2 = "&".join([
+        f"app_token__in={app_tokens_str}",
+        f"date_period={dp}",
+        "dimensions=country,app",
+        "metrics=installs,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+        "sort=-installs", "limit=1000", "format=json",
+    ])
+    url2 = f"https://dash.adjust.com/control-center/reports-service/report?{q2}"
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp2 = await client.get(url2, headers=headers)
+        country_rows = resp2.json().get("rows", []) if resp2.status_code == 200 else []
+
+    # Filter by app
+    af = (app_filter or "").lower()
+    if af:
+        daily_rows = [r for r in daily_rows if af in r.get("app", "").lower()]
+        country_rows = [r for r in country_rows if af in r.get("app", "").lower()]
+
+    # Build daily ROAS
+    daily = []
+    for r in sorted(daily_rows, key=lambda x: x.get("day", "")):
+        cost = float(r.get("cost", 0))
+        rd0 = float(r.get("revenue_total_d0", 0))
+        rd1 = float(r.get("revenue_total_d1", 0))
+        rd3 = float(r.get("revenue_total_d3", 0))
+        rd7 = float(r.get("revenue_total_d7", 0))
+        daily.append({
+            "date": r.get("day", ""),
+            "installs": int(float(r.get("installs", 0))),
+            "cost": round(cost, 2),
+            "revenue": round(float(r.get("revenue", 0)), 2),
+            "rev_d0": round(rd0, 2), "rev_d7": round(rd7, 2),
+            "roas_d0": round(rd0 / cost, 2) if cost > 0 else 0,
+            "roas_d1": round(rd1 / cost, 2) if cost > 0 else 0,
+            "roas_d3": round(rd3 / cost, 2) if cost > 0 else 0,
+            "roas_d7": round(rd7 / cost, 2) if cost > 0 else 0,
+        })
+
+    # Build country ROAS
+    by_country = []
+    for r in sorted(country_rows, key=lambda x: float(x.get("installs", 0)), reverse=True)[:15]:
+        cost = float(r.get("cost", 0))
+        rd0 = float(r.get("revenue_total_d0", 0))
+        rd7 = float(r.get("revenue_total_d7", 0))
+        rev = float(r.get("revenue", 0))
+        by_country.append({
+            "country": r.get("country", ""),
+            "installs": int(float(r.get("installs", 0))),
+            "cost": round(cost, 2),
+            "revenue": round(rev, 2),
+            "roas": round(rd7 / cost, 2) if cost > 0 else 0,
+            "roas_d0": round(rd0 / cost, 2) if cost > 0 else 0,
+            "roas_d7": round(rd7 / cost, 2) if cost > 0 else 0,
+        })
+
+    # Totals
+    t_cost = sum(d["cost"] for d in daily)
+    t_rev = sum(d["revenue"] for d in daily)
+    t_rd0 = sum(d["rev_d0"] for d in daily)
+    t_rd7 = sum(d["rev_d7"] for d in daily)
+
+    return JSONResponse({
+        "date_period": dp,
+        "apl389_daily": daily,
+        "apl389_by_country": by_country,
+        "all_apps_roas": [],  # not needed in single-app mode
+        "totals": {
+            "cost": round(t_cost, 2),
+            "revenue": round(t_rev, 2),
+            "roas_d0": round(t_rd0 / t_cost, 2) if t_cost > 0 else 0,
+            "roas_d7": round(t_rd7 / t_cost, 2) if t_cost > 0 else 0,
+        },
+    })
 
 
 @app.get("/api/brazil")
