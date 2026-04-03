@@ -32,6 +32,35 @@ from adjust_client.analyzer import (
 app = FastAPI(title="Adjust Analytics Dashboard")
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
+# Map app filter name to specific token for fast single-token queries
+APP_TOKEN_MAP = {}  # populated on first use
+
+
+async def _resolve_app_token(app_filter):
+    """Find the single token for an app name. Caches result."""
+    if not app_filter:
+        return os.getenv("ADJUST_APP_TOKENS", "")
+    af = app_filter.lower()
+    if af in APP_TOKEN_MAP:
+        return APP_TOKEN_MAP[af]
+    # Test each token
+    headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
+    for tk in ADJUST_APP_TOKENS:
+        q = f"app_token__in={tk}&date_period=2026-04-01:2026-04-03&dimensions=app&metrics=installs&limit=1&format=json"
+        url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    rows = resp.json().get("rows", [])
+                    if rows and af in rows[0].get("app", "").lower():
+                        APP_TOKEN_MAP[af] = tk
+                        return tk
+        except Exception:
+            continue
+    # Fallback: all tokens
+    return os.getenv("ADJUST_APP_TOKENS", "")
+
 # Auth config
 DASHBOARD_USERNAME = os.getenv("DASHBOARD_USERNAME", "admin")
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin")
@@ -233,11 +262,11 @@ async def get_countries(
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
     if start or end:
-        # Date filter active: fetch live from API with day dimension
+        # Date filter active: fetch live from API
         s = start or (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
         e = end or datetime.today().strftime("%Y-%m-%d")
         dp = f"{s}:{e}"
-        app_tokens_str = os.getenv("ADJUST_APP_TOKENS", "")
+        app_tokens_str = await _resolve_app_token(app_filter)
         headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
         q = "&".join([
             f"app_token__in={app_tokens_str}",
@@ -276,7 +305,7 @@ async def country_daily(
     end = datetime.today()
     start = end - timedelta(days=30)
     dp = f"{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}"
-    app_tokens_str = os.getenv("ADJUST_APP_TOKENS", "")
+    app_tokens_str = await _resolve_app_token(app_filter)
     headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
 
     q = "&".join([
@@ -362,7 +391,7 @@ async def get_campaigns(
         s = start or (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
         e = end or datetime.today().strftime("%Y-%m-%d")
         dp = f"{s}:{e}"
-        app_tokens_str = os.getenv("ADJUST_APP_TOKENS", "")
+        app_tokens_str = await _resolve_app_token(app_filter)
         headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
         q = "&".join([
             f"app_token__in={app_tokens_str}",
@@ -426,10 +455,9 @@ async def cohort_report(
 
     headers_api = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
 
-    # Find matching app token to send only 1 token (much faster)
+    # Resolve to single token for speed (13 tokens -> 1 token = 10x faster)
     af = (app_filter or "").lower()
-    # Use all tokens but let API aggregate — filter after
-    app_tokens_str = os.getenv("ADJUST_APP_TOKENS", "")
+    app_tokens_str = await _resolve_app_token(app_filter)
 
     cohort_m = "installs,daus,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7,revenue_total_d14,revenue_total_d21,revenue_total_d28,revenue_total_d35,revenue_total_d45,revenue_total_d60,revenue_total_d90"
 
@@ -547,10 +575,12 @@ async def roas_data(
     s = start or (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
     e = end or datetime.today().strftime("%Y-%m-%d")
     dp = f"{s}:{e}"
-    app_tokens_str = os.getenv("ADJUST_APP_TOKENS", "")
+    app_tokens_str = await _resolve_app_token(app_filter)
     headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
 
-    # Fetch daily data with cohort
+    import asyncio as _aio2
+
+    # Fetch daily + country in parallel with single token
     q = "&".join([
         f"app_token__in={app_tokens_str}",
         f"date_period={dp}",

@@ -510,16 +510,20 @@ let countrySort={col:'installs',asc:false};
 
 async function fetchJSON(url,opts){
   const resp=await fetch(url,opts||{});
-  if(resp.redirected||resp.url.includes('/login')){window.location.href='/login';throw new Error('Session expired');}
+  if(resp.status===401){
+    window.location.href='/login';
+    throw new Error('Session expired');
+  }
   const ct=resp.headers.get('content-type')||'';
   if(!ct.includes('json')){
     const txt=await resp.text();
-    if(txt.startsWith('<!DOCTYPE')||txt.startsWith('<html')){window.location.href='/login';throw new Error('Session expired');}
-    throw new Error('Invalid response: '+txt.slice(0,100));
+    if(txt.startsWith('<!DOCTYPE')||txt.startsWith('<html')){
+      window.location.href='/login';
+      throw new Error('Session expired');
+    }
+    throw new Error('Server error');
   }
-  const data=await resp.json();
-  if(resp.status===401){window.location.href='/login';throw new Error('Unauthorized');}
-  return data;
+  return await resp.json();
 }
 function fN(n){if(n==null||isNaN(n))return'-';if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+'M';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString();}
 function fM(n){if(n==null||isNaN(n))return'-';return'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -1105,9 +1109,10 @@ async function loadCohort(){
     el.style.display='none';
     renderCohort();
   }catch(e){
-    if(e.name!=='AbortError'){
-      el.innerHTML='<span style="color:var(--red)">Error: '+esc(e.message)+'</span>';
-    }
+    if(e.name==='AbortError')return;
+    if(e.message==='Session expired')return; // fetchJSON handles redirect
+    el.style.display='block';
+    el.innerHTML='<span style="color:var(--red)">Error loading cohort: '+esc(e.message)+'<br><br><button onclick="loadCohort()" style="background:var(--purple);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer">Retry</button></span>';
   }
 }
 
