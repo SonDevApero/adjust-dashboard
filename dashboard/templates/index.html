@@ -507,6 +507,19 @@ let allCampaigns=[],allCountries=[],allTrend={},roasData=null;
 let campSort={col:'revenue',asc:false},campPage=1,campPerPage=20;
 let countrySort={col:'installs',asc:false};
 
+async function fetchJSON(url,opts){
+  const resp=await fetch(url,opts||{});
+  if(resp.redirected||resp.url.includes('/login')){window.location.href='/login';throw new Error('Session expired');}
+  const ct=resp.headers.get('content-type')||'';
+  if(!ct.includes('json')){
+    const txt=await resp.text();
+    if(txt.startsWith('<!DOCTYPE')||txt.startsWith('<html')){window.location.href='/login';throw new Error('Session expired');}
+    throw new Error('Invalid response: '+txt.slice(0,100));
+  }
+  const data=await resp.json();
+  if(resp.status===401){window.location.href='/login';throw new Error('Unauthorized');}
+  return data;
+}
 function fN(n){if(n==null||isNaN(n))return'-';if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+'M';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString();}
 function fM(n){if(n==null||isNaN(n))return'-';return'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
@@ -562,7 +575,7 @@ function roasCls(v){return v>=1.3?'good':v>=1?'warn':'bad';}
 // === TAB 1: OVERVIEW ===
 async function loadOverview(){
   try{
-    const r=await(await fetch('/api/overview'+Q('overview'))).json();
+    const r=await fetchJSON('/api/overview'+Q('overview'));
     const t=r.totals||{};
     document.getElementById('k_installs').textContent=fN(t.installs);
     document.getElementById('k_revenue').textContent=fM(t.revenue);
@@ -640,7 +653,7 @@ function generateOverviewAnalysis(t,daily){
 
 async function loadTrend(){
   try{
-    const r=await(await fetch('/api/trend'+Q('overview'))).json();
+    const r=await fetchJSON('/api/trend'+Q('overview'));
     allTrend=r.trend||{};
     await loadCountriesForOverview();
     await loadCampaignsForOverview();
@@ -649,7 +662,7 @@ async function loadTrend(){
 
 async function loadCountriesForOverview(){
   try{
-    const r=await(await fetch('/api/countries'+Q('overview'))).json();
+    const r=await fetchJSON('/api/countries'+Q('overview'));
     const top5=(r.countries||[]).slice(0,5);
     destroyChart('overviewCountry');
     if(top5.length){
@@ -665,7 +678,7 @@ async function loadCountriesForOverview(){
 
 async function loadCampaignsForOverview(){
   try{
-    const r=await(await fetch('/api/campaigns'+Q('overview'))).json();
+    const r=await fetchJSON('/api/campaigns'+Q('overview'));
     const camps=(r.campaigns||[]).slice(0,8);
     destroyChart('overviewApps');
     if(camps.length){
@@ -705,7 +718,7 @@ document.getElementById('ozSort').addEventListener('change',renderOptimalZones);
 // === TAB 3: CAMPAIGNS ===
 async function loadCampaigns(){
   try{
-    const r=await(await fetch('/api/campaigns'+Q('campaigns'))).json();
+    const r=await fetchJSON('/api/campaigns'+Q('campaigns'));
     allCampaigns=r.campaigns||[];
     campPage=1;
     renderCampaigns();
@@ -765,7 +778,7 @@ function exportCSV(){
 // === TAB 4: COUNTRIES ===
 async function loadCountries(){
   try{
-    const r=await(await fetch('/api/countries'+Q('countries'))).json();
+    const r=await fetchJSON('/api/countries'+Q('countries'));
     allCountries=r.countries||[];
     renderCountries();
     renderOptimalZones();
@@ -809,7 +822,7 @@ async function selectCountry(country){
   document.getElementById('countryLoading').style.display='inline';
 
   try{
-    const r=await(await fetch('/api/country_daily?country='+encodeURIComponent(country)+'&app=APL389')).json();
+    const r=await fetchJSON('/api/country_daily?country='+encodeURIComponent(country)+'&app=APL389');
     if(r.error){document.getElementById('cdAnalysis').textContent=r.error;return;}
     document.getElementById('countryLoading').style.display='none';
     renderCountryDetail(r, country);
@@ -943,7 +956,7 @@ function generateCountryAnalysis(days, t, country){
 // === TAB 5: ROAS ===
 async function loadRoas(){
   try{
-    const r=await(await fetch('/api/roas'+Q('roas'))).json();
+    const r=await fetchJSON('/api/roas'+Q('roas'));
     if(r.error){document.getElementById('analysisRoas').textContent=r.error;return;}
     roasData=r;
     renderRoas();
@@ -1078,8 +1091,7 @@ async function loadCohort(){
   let url='/api/cohort_report'+Q('cohort');
   if(country)url+='&country='+encodeURIComponent(country);
   try{
-    const resp=await fetch(url,{signal:cohortAbort.signal});
-    const r=await resp.json();
+    const r=await fetchJSON(url,{signal:cohortAbort.signal});
     if(r.error){el.innerHTML='<span style="color:var(--red)">Error: '+esc(r.error)+'</span>';return;}
     cohortData=r;
     // Populate country dropdown
