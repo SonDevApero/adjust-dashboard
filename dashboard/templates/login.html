@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Adjust Analytics</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-card{background:#1a1d2e;border:1px solid #252836;border-radius:16px;padding:40px;width:380px;max-width:90vw}
+@media(max-width:480px){
+  .login-card{padding:28px 20px;border-radius:12px}
+  .logo-row h1{font-size:18px}
+  .field input{padding:10px 12px;font-size:13px}
+  .btn-login{padding:10px;font-size:13px}
+}
+.logo-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px}
+.logo{width:40px;height:40px;background:linear-gradient(135deg,#4c6ef5,#7c3aed);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff}
+.logo-row h1{font-size:20px;font-weight:700;color:#fff}
+.logo-row h1 span{color:#7c3aed}
+.subtitle{text-align:center;color:#6b7280;font-size:13px;margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input{width:100%;background:#12151f;color:#e0e0e0;border:1px solid #252836;padding:12px 14px;border-radius:8px;font-size:14px;transition:border-color .2s}
+.field input:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+.field input::placeholder{color:#4b5563}
+.btn-login{width:100%;padding:12px;background:linear-gradient(135deg,#4c6ef5,#7c3aed);border:none;color:#fff;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.btn-login:hover{opacity:.9}
+.btn-login:disabled{opacity:.4;cursor:not-allowed}
+.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+.error.show{display:block}
+.footer{text-align:center;margin-top:20px;font-size:11px;color:#4b5563}
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="logo-row">
+    <div class="logo">A</div>
+    <h1><span>APL389</span> Analytics</h1>
+  </div>
+  <p class="subtitle">Sign in to access the dashboard</p>
+  <div class="error" id="error"></div>
+  <form id="loginForm" onsubmit="doLogin(event)">
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter username" autocomplete="username" required autofocus>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn-login" id="loginBtn">Sign In</button>
+  </form>
+  <div class="footer">Adjust Analytics Dashboard</div>
+</div>
+<script>
+async function doLogin(e){
+  e.preventDefault();
+  const btn=document.getElementById('loginBtn');
+  const err=document.getElementById('error');
+  btn.disabled=true;btn.textContent='Signing in...';
+  err.classList.remove('show');
+
+  const form=new FormData();
+  form.append('username',document.getElementById('username').value);
+  form.append('password',document.getElementById('password').value);
+
+  try{
+    const resp=await fetch('/login',{method:'POST',body:form,redirect:'follow'});
+    if(resp.redirected){
+      window.location.href=resp.url;
+      return;
+    }
+    const data=await resp.json();
+    if(data.error){
+      err.textContent=data.error;
+      err.classList.add('show');
+    }
+  }catch(ex){
+    err.textContent='Connection error';
+    err.classList.add('show');
+  }
+  btn.disabled=false;btn.textContent='Sign In';
+}
+</script>
+</body>
+</html>

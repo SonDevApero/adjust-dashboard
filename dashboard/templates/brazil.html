@@ -59,9 +59,21 @@ tr.highlight td{background:#0d1a14;font-weight:600}
 .reco p{font-size:12px;color:#9ca3af;line-height:1.5}
 
 @media(max-width:768px){
-  .kpi-strip{grid-template-columns:repeat(2,1fr)}
-  .chart-grid{grid-template-columns:1fr}
-  .header,.section,.table-wrap,.reco-grid{padding-left:16px;padding-right:16px}
+  .kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;padding:12px 16px}
+  .kpi{padding:12px 8px}
+  .kpi-value{font-size:18px}
+  .chart-grid{grid-template-columns:1fr;gap:12px;padding:0 16px 12px}
+  .chart-full{padding:0 16px 12px}
+  .chart-box{padding:12px}
+  .chart-box canvas{max-height:220px}
+  .header{padding:12px 16px}
+  .header h1{font-size:15px}
+  .section,.reco-grid{padding-left:16px;padding-right:16px}
+  .table-wrap{margin:0 16px 12px;border-radius:8px}
+  table{font-size:11px}
+  th{padding:8px 6px;font-size:9px}
+  td{padding:6px 6px}
+  .reco-grid{grid-template-columns:1fr}
 }
 </style>
 </head>

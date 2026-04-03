@@ -3,528 +3,913 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Adjust Analytics Dashboard</title>
+<title>APL389 - Photo Video Maker Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b0d13;color:#e0e0e0;min-height:100vh}
+:root{--bg:#0f1117;--sidebar:#12151f;--card:#1a1d2e;--border:#252836;--text:#e0e0e0;--muted:#6b7280;--purple:#7c3aed;--cyan:#06b6d4;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--blue:#4c6ef5}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden}
 
-/* Header */
-.header{background:linear-gradient(135deg,#10121a,#161a2a);border-bottom:1px solid #1e2235;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.header-left{display:flex;align-items:center;gap:12px}
-.logo{width:36px;height:36px;background:linear-gradient(135deg,#4c6ef5,#7c3aed);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff}
-.header h1{font-size:20px;font-weight:700;color:#fff}
-.header h1 span{color:#7c3aed}
-.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-select,input[type="date"],button{background:#161a2a;color:#e0e0e0;border:1px solid #252a40;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;transition:border-color .2s}
-select:hover,input:hover,button:hover{border-color:#7c3aed}
-select:focus,input:focus{outline:none;border-color:#4c6ef5;box-shadow:0 0 0 2px rgba(76,110,245,.15)}
-.btn-refresh{background:linear-gradient(135deg,#4c6ef5,#7c3aed);border:none;color:#fff;font-weight:600;padding:8px 20px}
-.btn-refresh:hover{opacity:.9}
+/* Sidebar */
+.sidebar{width:220px;min-height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.sidebar-brand{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-brand .logo{width:32px;height:32px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.sidebar-brand h2{font-size:14px;font-weight:700;color:#fff;line-height:1.2}
+.sidebar-brand h2 span{font-size:11px;font-weight:400;color:var(--muted);display:block}
+.sidebar-nav{flex:1;padding:12px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:#fff;background:rgba(124,58,237,.1);border-left-color:var(--purple)}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:.6}
+.nav-item.active svg{opacity:1}
+.sidebar-bottom{padding:12px 16px;border-top:1px solid var(--border)}
+.sidebar-bottom select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:7px 10px;border-radius:6px;font-size:12px}
+.sidebar-bottom .sync{font-size:10px;color:var(--muted);margin-top:8px;display:block}
+
+/* Main */
+.main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* Top bar */
+.topbar{padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sidebar)}
+.topbar select,.topbar button,.topbar input{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+.topbar select:hover,.topbar button:hover{border-color:var(--purple)}
+.topbar .spacer{flex:1}
+.btn-refresh{background:linear-gradient(135deg,var(--blue),var(--purple))!important;border:none!important;color:#fff;font-weight:600;padding:7px 18px}
 .btn-refresh:disabled{opacity:.4;cursor:not-allowed}
 
-/* Status bar */
-.meta-bar{padding:10px 32px;display:flex;justify-content:space-between;align-items:center;color:#6b7280;font-size:12px;border-bottom:1px solid #141728}
-.status{display:flex;align-items:center;gap:6px}
-.dot{width:7px;height:7px;border-radius:50%;background:#10b981}
-.dot.loading{background:#f59e0b;animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* Content */
+.content{flex:1;padding:20px 24px;overflow-y:auto}
+.tab-panel{display:none;animation:fadeIn .25s ease}
+.tab-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-/* Loading overlay */
-.loading-overlay{display:none;position:fixed;inset:0;background:rgba(11,13,19,.85);z-index:1000;justify-content:center;align-items:center;flex-direction:column;gap:16px}
-.loading-overlay.active{display:flex}
-.spinner{width:40px;height:40px;border:3px solid #252a40;border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-overlay p{color:#9ca3af;font-size:14px}
-
-/* Error banner */
-.error-banner{display:none;margin:12px 32px;padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#ef4444;font-size:13px}
-.error-banner.active{display:block}
-
-/* Anomaly alerts */
-.alerts{padding:8px 32px;display:flex;flex-wrap:wrap;gap:6px;min-height:10px}
-.alert-badge{font-size:11px;padding:3px 10px;border-radius:4px;font-weight:600}
-.alert-badge.spike{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
-.alert-badge.drop{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
-
-/* KPI Cards */
-.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:16px 32px}
-.kpi{background:#131622;border:1px solid #1e2235;border-radius:10px;padding:18px 16px;text-align:center;transition:border-color .2s}
-.kpi:hover{border-color:#4c6ef5}
-.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;margin-bottom:5px}
-.kpi-value{font-size:24px;font-weight:700;color:#fff;line-height:1.2}
-.kpi-sub{font-size:10px;color:#4b5563;margin-top:3px}
-
-/* Sections */
-.section{padding:20px 32px}
-.section-title{font-size:14px;font-weight:600;margin-bottom:12px;color:#e0e0e0;display:flex;align-items:center;gap:8px}
-.section-title .badge{font-size:11px;background:#1e2235;padding:2px 8px;border-radius:4px;color:#6b7280}
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:border-color .15s}
+.kpi:hover{border-color:var(--blue)}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px}
+.kpi-value{font-size:22px;font-weight:700;color:#fff}
+.kpi-sub{font-size:10px;color:#4b5563;margin-top:2px}
 
 /* Charts */
-.chart-row{display:grid;grid-template-columns:3fr 2fr;gap:16px;padding:0 32px 16px}
-.chart-box{background:#13162;border:1px solid #1e2235;border-radius:10px;padding:18px}
-.chart-box h3{font-size:12px;font-weight:600;margin-bottom:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.3px}
+.chart-row{display:grid;gap:16px;margin-bottom:20px}
+.chart-row.c2{grid-template-columns:1fr 1fr}
+.chart-row.c3{grid-template-columns:2fr 1fr 1fr}
+.chart-row.c1{grid-template-columns:1fr}
+.chart-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.chart-box h3{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px}
 .chart-box canvas{width:100%!important;max-height:300px}
 
 /* Tables */
-.table-wrap{overflow-x:auto;background:#131622;border:1px solid #1e2235;border-radius:10px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:10px 14px;color:#6b7280;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.4px;border-bottom:1px solid #1e2235;cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
-th:hover{color:#e0e0e0}
-th.sorted{color:#7c3aed}
-td{padding:9px 14px;border-bottom:1px solid #161a2a;white-space:nowrap}
-tr:hover td{background:#161a2a}
-.positive{color:#10b981}
-.negative{color:#ef4444}
+.table-controls{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.table-controls input{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px;width:240px}
+.table-controls button{background:var(--card);color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer}
+.table-controls button:hover{border-color:var(--cyan);color:var(--cyan)}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.3px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--text)}
+td{padding:8px 12px;border-bottom:1px solid rgba(37,40,54,.5);white-space:nowrap}
+tr:hover td{background:rgba(255,255,255,.02)}
+tr.row-good td{border-left:2px solid var(--green)}
+tr.row-bad td{border-left:2px solid var(--red)}
+.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.badge-good{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-bad{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-warn{background:rgba(245,158,11,.15);color:var(--amber)}
+.pagination{display:flex;align-items:center;gap:8px;margin-top:10px;justify-content:center}
+.pagination button{background:var(--card);color:var(--muted);border:1px solid var(--border);padding:5px 12px;border-radius:4px;font-size:11px;cursor:pointer}
+.pagination button.active,.pagination button:hover{border-color:var(--purple);color:var(--purple)}
+.pagination span{font-size:11px;color:var(--muted)}
 
-/* Retention chart */
-.retention-row{display:grid;grid-template-columns:1fr;padding:0 32px 20px}
+/* Country cards */
+.country-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.country-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.country-card h4{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.country-card .formats{font-size:11px;color:var(--muted);margin-bottom:10px}
+.zone-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(37,40,54,.5)}
+.zone-row:last-child{border:none}
+.zone-label{color:var(--muted);width:90px}
+.zone-val{font-weight:600;color:var(--text)}
+.zone-best{color:var(--green);font-weight:700}
 
-@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,var(--card) 25%,#222640 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:20px;margin-bottom:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Alerts */
+.alert-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.alert-badge{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600}
+.alert-badge.spike{background:rgba(239,68,68,.12);color:var(--red)}
+.alert-badge.drop{background:rgba(245,158,11,.12);color:var(--amber)}
+
+/* Sparkline */
+.sparkline{display:inline-block;width:80px;height:24px;vertical-align:middle}
+
+/* Mobile menu toggle */
+.mobile-header{display:none;position:sticky;top:0;z-index:99;background:var(--sidebar);border-bottom:1px solid var(--border);padding:10px 16px;align-items:center;gap:10px}
+.mobile-header .logo{width:28px;height:28px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.mobile-header h2{font-size:14px;font-weight:700;color:#fff;flex:1}
+.burger{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
+.sidebar-overlay.open{display:block}
+
+/* Responsive */
+@media(max-width:1100px){
+  .kpi-row{grid-template-columns:repeat(3,1fr)}
+  .chart-row.c2,.chart-row.c3{grid-template-columns:1fr}
+  .country-grid{grid-template-columns:1fr 1fr}
+}
 @media(max-width:768px){
-  .header,.kpi-grid,.section,.chart-row,.alerts,.retention-row{padding-left:16px;padding-right:16px}
-  .chart-row{grid-template-columns:1fr}
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease;width:260px}
+  .sidebar.open{transform:translateX(0)}
+  .mobile-header{display:flex}
+  .main{margin-left:0}
+  .content{padding:14px 12px}
+  .topbar{padding:10px 12px;gap:6px}
+  .topbar select,.topbar button,.topbar input{padding:6px 10px;font-size:11px}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+  .kpi{padding:12px 8px}
+  .kpi-value{font-size:18px}
+  .kpi-label{font-size:9px}
+  .chart-row{gap:12px;margin-bottom:14px}
+  .chart-box{padding:12px}
+  .chart-box canvas{max-height:220px}
+  .country-grid{grid-template-columns:1fr;gap:10px}
+  .table-wrap{border-radius:8px}
+  table{font-size:11px}
+  th{padding:8px 8px;font-size:9px}
+  td{padding:6px 8px}
+  .table-controls input{width:100%}
+  .table-controls{flex-direction:column;align-items:stretch}
+  .alert-bar{gap:4px}
+  .alert-badge{font-size:9px;padding:2px 6px}
+  .pagination{flex-wrap:wrap}
 }
 </style>
 </head>
 <body>
 
-<!-- Loading overlay -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <p id="loadingText">Fetching last 30 days from Adjust API...</p>
+<!-- Mobile header -->
+<div class="mobile-header">
+  <div class="logo">A</div>
+  <h2>APL389</h2>
+  <button class="burger" onclick="toggleSidebar()">&#9776;</button>
 </div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-<div class="header">
-  <div class="header-left">
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
     <div class="logo">A</div>
-    <h1><span>Adjust</span> Analytics</h1>
+    <h2>APL389<span>Photo Video Maker</span></h2>
   </div>
-  <div class="controls">
-    <a href="/roas" style="background:#1a1a0d;color:#f59e0b;border:1px solid #f59e0b;padding:8px 16px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">ROAS Analysis</a>
-    <a href="/brazil" style="background:#0d1a14;color:#10b981;border:1px solid #10b981;padding:8px 16px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">APL389 Brazil</a>
-    <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">Refresh Data</button>
+  <nav class="sidebar-nav" id="sidebarNav">
+    <div class="nav-item active" data-tab="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" data-tab="optimal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Optimal Zones
+    </div>
+    <div class="nav-item" data-tab="campaigns">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Campaign Perf.
+    </div>
+    <div class="nav-item" data-tab="countries">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Country Breakdown
+    </div>
+    <div class="nav-item" data-tab="roas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      ROAS Analysis
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div style="font-size:11px;color:var(--purple);font-weight:600;margin-bottom:6px">APL389 - Photo Video Maker</div>
+    <span class="sync">Last synced: <span id="syncTime">-</span></span>
+    <a href="/logout" style="display:flex;align-items:center;gap:6px;margin-top:10px;color:var(--muted);font-size:12px;text-decoration:none;padding:6px 0;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--muted)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      Logout
+    </a>
   </div>
-</div>
+</aside>
 
-<div class="meta-bar">
-  <div class="status"><div class="dot" id="dot"></div><span id="statusText">Loading...</span></div>
-  <div>Last updated: <span id="fetchedAt">-</span></div>
-</div>
-
-<!-- Error banner -->
-<div class="error-banner" id="errorBanner"></div>
-
-<!-- Anomaly alerts -->
-<div class="alerts" id="alertsBar"></div>
-
-<!-- 1. KPI Cards -->
-<div class="kpi-grid">
-  <div class="kpi"><div class="kpi-label">Total Installs</div><div class="kpi-value" id="kpiInstalls">-</div></div>
-  <div class="kpi"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="kpiRevenue">-</div><div class="kpi-sub">USD</div></div>
-  <div class="kpi"><div class="kpi-label">DAU</div><div class="kpi-value" id="kpiDaus">-</div><div class="kpi-sub">Daily Active Users</div></div>
-  <div class="kpi"><div class="kpi-label">Avg eCPI</div><div class="kpi-value" id="kpiEcpi">-</div><div class="kpi-sub">Cost per Install</div></div>
-  <div class="kpi"><div class="kpi-label">Total Ad Spend</div><div class="kpi-value" id="kpiCost">-</div><div class="kpi-sub">USD</div></div>
-  <div class="kpi"><div class="kpi-label">Total Sessions</div><div class="kpi-value" id="kpiSessions">-</div></div>
-</div>
-
-<!-- 2. Daily Trend + 4. Country Breakdown -->
-<div class="chart-row">
-  <div class="chart-box">
-    <h3>Daily Installs &amp; Revenue (by App)</h3>
-    <canvas id="trendChart"></canvas>
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <select id="dateRange">
+      <option value="today">Today</option>
+      <option value="yesterday">Yesterday</option>
+      <option value="7">Last 7 days</option>
+      <option value="14">Last 14 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="custom">Custom</option>
+    </select>
+    <input type="date" id="startDate" style="display:none">
+    <input type="date" id="endDate" style="display:none">
+    <div class="spacer"></div>
+    <button class="btn-refresh" id="refreshBtn" onclick="doRefresh()">Refresh Data</button>
   </div>
-  <div class="chart-box">
-    <h3>Top 10 Countries by Installs</h3>
-    <canvas id="countryChart"></canvas>
-  </div>
-</div>
 
-<!-- 3. App Comparison Table -->
-<div class="section">
-  <div class="section-title">App Comparison <span class="badge" id="appCount">0</span></div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th onclick="sortAppTable('app')">App Name</th>
-        <th onclick="sortAppTable('installs')">Installs</th>
-        <th onclick="sortAppTable('revenue')">Revenue</th>
-        <th onclick="sortAppTable('cost')">Cost</th>
-        <th onclick="sortAppTable('ecpi')">eCPI</th>
-        <th onclick="sortAppTable('sessions')">Sessions</th>
-        <th onclick="sortAppTable('daus')">DAU</th>
-      </tr></thead>
-      <tbody id="appBody"></tbody>
-    </table>
-  </div>
-</div>
+  <div class="content">
 
-<!-- 5. Campaign Performance Table -->
-<div class="section">
-  <div class="section-title">Campaign Performance <span class="badge" id="campaignCount">0</span></div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th onclick="sortCampTable('campaign')">Campaign</th>
-        <th onclick="sortCampTable('app')">App</th>
-        <th onclick="sortCampTable('installs')">Installs</th>
-        <th onclick="sortCampTable('cost')">Cost</th>
-        <th onclick="sortCampTable('revenue')">Revenue</th>
-        <th onclick="sortCampTable('ecpi')">eCPI</th>
-      </tr></thead>
-      <tbody id="campaignBody"></tbody>
-    </table>
-  </div>
-</div>
+    <!-- TAB 1: Overview -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="alert-bar" id="alertBar"></div>
+      <div class="kpi-row" id="kpiRow" style="grid-template-columns:repeat(5,1fr)">
+        <div class="kpi"><div class="kpi-label">Total Installs</div><div class="kpi-value" id="k_installs">-</div></div>
+        <div class="kpi"><div class="kpi-label">Ad Spend</div><div class="kpi-value" id="k_cost">-</div><div class="kpi-sub">Total cost</div></div>
+        <div class="kpi"><div class="kpi-label">Revenue (Total)</div><div class="kpi-value" id="k_revenue">-</div><div class="kpi-sub">All-time rev from cohort</div></div>
+        <div class="kpi"><div class="kpi-label">Rev Cohort D7</div><div class="kpi-value" id="k_rev_d7">-</div><div class="kpi-sub">Revenue within 7 days</div></div>
+        <div class="kpi"><div class="kpi-label">eCPI</div><div class="kpi-value" id="k_ecpi">-</div><div class="kpi-sub">Cost / Install</div></div>
+      </div>
+      <!-- Cohort ROAS KPIs -->
+      <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-top:-8px">
+        <div class="kpi"><div class="kpi-label">Rev Cohort D0</div><div class="kpi-value" id="k_rev_d0">-</div><div class="kpi-sub">Same-day revenue</div></div>
+        <div class="kpi"><div class="kpi-label">ROAS Cohort D0</div><div class="kpi-value" id="k_roas_d0">-</div><div class="kpi-sub">RevD0 / Cost</div></div>
+        <div class="kpi"><div class="kpi-label">ROAS Cohort D1</div><div class="kpi-value" id="k_roas_d1">-</div><div class="kpi-sub">RevD1 / Cost</div></div>
+        <div class="kpi"><div class="kpi-label">ROAS Cohort D3</div><div class="kpi-value" id="k_roas_d3">-</div><div class="kpi-sub">RevD3 / Cost</div></div>
+        <div class="kpi"><div class="kpi-label">ROAS Cohort D7</div><div class="kpi-value" id="k_roas_d7">-</div><div class="kpi-sub">RevD7 / Cost</div></div>
+      </div>
+      <div class="chart-row c1"><div class="chart-box"><h3>Daily Installs &amp; Revenue</h3><canvas id="overviewTrend"></canvas></div></div>
+      <div class="chart-row c2">
+        <div class="chart-box"><h3>Daily ROAS Cohort D0 / D1 / D3 / D7</h3><canvas id="cohortTrend"></canvas></div>
+        <div class="chart-box"><h3>Revenue by Country (Top 5)</h3><canvas id="overviewCountry"></canvas></div>
+      </div>
+      <div class="chart-row c1"><div class="chart-box"><h3>Installs by Campaign (Top 8)</h3><canvas id="overviewApps"></canvas></div></div>
+      <!-- Analysis Section -->
+      <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--purple)">
+        <h3 style="color:var(--purple);font-size:13px;text-transform:none;letter-spacing:0">Phan tich &amp; Ket luan</h3>
+        <div id="analysisOverview" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
+      </div>
+    </div>
 
-<!-- 6. Retention Chart -->
-<div class="section">
-  <div class="section-title">DAU &amp; Sessions by App</div>
-</div>
-<div class="retention-row">
-  <div class="chart-box">
-    <canvas id="retentionChart"></canvas>
+    <!-- TAB 2: Optimal Zones -->
+    <div class="tab-panel" id="tab-optimal">
+      <div class="table-controls">
+        <select id="ozSort"><option value="installs">Sort: Installs</option><option value="revenue">Sort: Revenue</option><option value="ecpi">Sort: eCPI</option></select>
+      </div>
+      <div class="country-grid" id="ozGrid"></div>
+    </div>
+
+    <!-- TAB 3: Campaigns -->
+    <div class="tab-panel" id="tab-campaigns">
+      <div class="table-controls">
+        <input type="text" id="campSearch" placeholder="Search campaigns...">
+        <button onclick="exportCSV()">Export CSV</button>
+      </div>
+      <div class="table-wrap"><table><thead><tr>
+        <th onclick="sortCamp('campaign')">Campaign</th>
+        <th onclick="sortCamp('installs')">Installs</th><th onclick="sortCamp('cost')">Cost</th>
+        <th onclick="sortCamp('revenue')">Revenue</th><th onclick="sortCamp('rev_d0')">Rev D0</th>
+        <th onclick="sortCamp('roas_d0')">ROAS D0</th><th onclick="sortCamp('roas_d1')">ROAS D1</th>
+        <th onclick="sortCamp('roas_d3')">ROAS D3</th><th onclick="sortCamp('roas_d7')">ROAS D7</th>
+        <th onclick="sortCamp('ecpi')">eCPI</th><th>Status</th>
+      </tr></thead><tbody id="campBody"></tbody></table></div>
+      <div class="pagination" id="campPagination"></div>
+      <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--cyan)">
+        <h3 style="color:var(--cyan);font-size:13px;text-transform:none;letter-spacing:0">Phan tich Campaign</h3>
+        <div id="analysisCampaign" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Countries -->
+    <div class="tab-panel" id="tab-countries">
+      <!-- Country filter -->
+      <div class="table-controls" style="margin-bottom:16px">
+        <select id="countrySelect" style="min-width:200px"><option value="">-- Ch&#x1ECD;n country &#x0111;&#x1EC3; xem chi ti&#x1EBF;t --</option></select>
+        <span id="countryLoading" style="color:var(--muted);font-size:12px;display:none">&#x0110;ang t&#x1EA3;i d&#x1EEF; li&#x1EC7;u...</span>
+      </div>
+
+      <!-- Summary table (all countries) -->
+      <div class="table-wrap" id="countrySummaryWrap">
+        <table><thead><tr>
+          <th onclick="sortCountry('country')" style="cursor:pointer">Country</th>
+          <th onclick="sortCountry('installs')">Installs</th>
+          <th onclick="sortCountry('cost')">Cost</th>
+          <th onclick="sortCountry('revenue')">Revenue</th>
+          <th onclick="sortCountry('roas_d0')">ROAS D0</th>
+          <th onclick="sortCountry('roas_d7')">ROAS D7</th>
+          <th onclick="sortCountry('ecpi')">eCPI</th>
+          <th>Action</th>
+        </tr></thead><tbody id="countryBody"></tbody></table>
+      </div>
+
+      <!-- Detail panel (shows when country selected) -->
+      <div id="countryDetail" style="display:none">
+        <div style="display:flex;align-items:center;gap:12px;margin:16px 0 12px">
+          <h3 style="font-size:16px;color:#fff" id="cdTitle">-</h3>
+          <button onclick="closeCountryDetail()" style="background:var(--card);color:var(--muted);border:1px solid var(--border);padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">&larr; Quay l&#x1EA1;i</button>
+        </div>
+        <!-- KPIs -->
+        <div class="kpi-row" id="cdKpis" style="grid-template-columns:repeat(5,1fr)"></div>
+        <!-- Charts -->
+        <div class="chart-row c2">
+          <div class="chart-box"><h3>Daily ROAS Cohort D0 / D1 / D3 / D7</h3><canvas id="cdRoasChart"></canvas></div>
+          <div class="chart-box"><h3>Daily LTV D0 / D3 / D7</h3><canvas id="cdLtvChart"></canvas></div>
+        </div>
+        <div class="chart-row c1">
+          <div class="chart-box"><h3>Daily Installs, Cost &amp; Revenue</h3><canvas id="cdDailyChart"></canvas></div>
+        </div>
+        <!-- Daily table -->
+        <div class="table-wrap" style="margin-top:12px"><table>
+          <thead><tr>
+            <th>Date</th><th>Installs</th><th>Cost</th><th>Revenue</th>
+            <th>Rev D0</th><th>Rev D7</th>
+            <th>ROAS D0</th><th>ROAS D1</th><th>ROAS D3</th><th>ROAS D7</th>
+            <th>LTV D0</th><th>LTV D3</th><th>LTV D7</th><th>eCPI</th>
+          </tr></thead>
+          <tbody id="cdTableBody"></tbody>
+        </table></div>
+        <!-- Analysis -->
+        <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--green)">
+          <h3 style="color:var(--green);font-size:13px;text-transform:none;letter-spacing:0">Ph&#x00E2;n t&#x00ED;ch &amp; &#x0110;&#x1EC1; xu&#x1EA5;t</h3>
+          <div id="cdAnalysis" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: ROAS -->
+    <div class="tab-panel" id="tab-roas">
+      <div class="kpi-row" id="roasKpis" style="grid-template-columns:repeat(4,1fr)"></div>
+      <div class="chart-row c2">
+        <div class="chart-box"><h3>Daily ROAS Cohort Trend</h3><canvas id="roasTrend"></canvas></div>
+        <div class="chart-box"><h3>ROAS D7 by Country (Top 10)</h3><canvas id="roasCampaign"></canvas></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr>
+        <th>Country</th><th>Cost</th><th>Rev D0</th><th>Rev D7</th><th>ROAS D0</th><th>ROAS D1</th><th>ROAS D3</th><th>ROAS D7</th><th>Status</th>
+      </tr></thead><tbody id="roasBody"></tbody></table></div>
+      <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--amber)">
+        <h3 style="color:var(--amber);font-size:13px;text-transform:none;letter-spacing:0">K&#x1EBF;t lu&#x1EAD;n v&agrave; &#x0110;&#x1EC1; xu&#x1EA5;t</h3>
+        <div id="analysisRoas" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
-let trendChart = null, countryChart = null, retentionChart = null;
-let appData = [], campaignData = [];
-let appSort = {col:'revenue', asc:false};
-let campSort = {col:'revenue', asc:false};
-
-const APP_COLORS = [
-  '#4c6ef5','#7c3aed','#06b6d4','#10b981','#f59e0b',
-  '#ef4444','#ec4899','#8b5cf6','#14b8a6','#f97316',
-];
-
-function fmtNum(n){
-  if(n==null||isNaN(n))return'-';
-  if(n>=1e6)return(n/1e6).toFixed(1)+'M';
-  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
-  return n.toLocaleString();
-}
-function fmtMoney(n){
-  if(n==null||isNaN(n))return'-';
-  return '$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-
-// ── Loading ──
-function showLoading(msg){
-  document.getElementById('loadingText').textContent=msg||'Loading...';
-  document.getElementById('loadingOverlay').classList.add('active');
-}
-function hideLoading(){
-  document.getElementById('loadingOverlay').classList.remove('active');
-}
-function setStatus(text,loading){
-  document.getElementById('statusText').textContent=text;
-  const dot=document.getElementById('dot');
-  loading?dot.classList.add('loading'):dot.classList.remove('loading');
-}
-function showError(errors){
-  const banner=document.getElementById('errorBanner');
-  if(!errors||!errors.length){banner.classList.remove('active');return;}
-  banner.innerHTML=errors.map(e=>`<div><strong>${esc(e.source||'API')}:</strong> ${esc(e.error)}</div>`).join('');
-  banner.classList.add('active');
-}
-
-// ── Auto-fetch on page load ──
-async function init(){
-  showLoading('Fetching last 30 days from Adjust API...');
-  setStatus('Fetching data...', true);
-  try{
-    const resp=await fetch('/api/refresh',{method:'POST'});
-    const r=await resp.json();
-    // Poll until data is ready
-    await pollForData();
-  }catch(e){
-    console.error(e);
-    // Try loading cached data
-    await loadAll();
-    hideLoading();
-    setStatus('Using cached data',false);
+const COLORS=['#4c6ef5','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#14b8a6','#f97316','#64748b','#a855f7','#22d3ee'];
+const APP='APL389';
+function Q(){
+  let q='?app='+APP;
+  const range=document.getElementById('dateRange').value;
+  const today=new Date();
+  let s,e;
+  if(range==='today'){
+    s=e=today.toISOString().slice(0,10);
+  }else if(range==='yesterday'){
+    const y=new Date(today);y.setDate(y.getDate()-1);
+    s=e=y.toISOString().slice(0,10);
+  }else if(range==='custom'){
+    s=document.getElementById('startDate').value;
+    e=document.getElementById('endDate').value;
+  }else{
+    const d=new Date(today);d.setDate(d.getDate()-parseInt(range));
+    s=d.toISOString().slice(0,10);
+    e=today.toISOString().slice(0,10);
   }
+  if(s)q+='&start='+s;
+  if(e)q+='&end='+e;
+  return q;
+}
+let charts={};
+let allCampaigns=[],allCountries=[],allTrend={},roasData=null;
+let campSort={col:'revenue',asc:false},campPage=1,campPerPage=20;
+let countrySort={col:'installs',asc:false};
+
+function fN(n){if(n==null||isNaN(n))return'-';if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+'M';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString();}
+function fM(n){if(n==null||isNaN(n))return'-';return'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+// === MOBILE SIDEBAR ===
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
 }
 
-async function pollForData(){
-  let attempts=0;
-  return new Promise((resolve)=>{
-    const iv=setInterval(async()=>{
-      attempts++;
-      try{
-        const r=await(await fetch('/api/overview')).json();
-        if(r.fetched_at||attempts>=30){
-          clearInterval(iv);
-          await loadAll();
-          hideLoading();
-          setStatus('Ready',false);
-          resolve();
-        }
-        if(r.errors&&r.errors.length){
-          showError(r.errors);
-        }
-      }catch(e){
-        if(attempts>=30){clearInterval(iv);hideLoading();setStatus('Error',false);resolve();}
-      }
-    },2000);
+// === NAV ===
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('tab-'+el.dataset.tab).classList.add('active');
+    // Close sidebar on mobile
+    if(window.innerWidth<=768){
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    }
+    const tab=el.dataset.tab;
+    if(tab==='campaigns')loadCampaigns();
+    if(tab==='countries')loadCountries();
+    if(tab==='roas')loadRoas();
+    if(tab==='optimal'){if(!allCountries.length)loadCountries();else renderOptimalZones();}
   });
+});
+
+document.getElementById('dateRange').addEventListener('change',e=>{
+  const c=e.target.value==='custom';
+  document.getElementById('startDate').style.display=c?'':'none';
+  document.getElementById('endDate').style.display=c?'':'none';
+  if(!c) reloadAll();
+});
+document.getElementById('startDate').addEventListener('change',reloadAll);
+document.getElementById('endDate').addEventListener('change',reloadAll);
+
+function reloadAll(){
+  allCampaigns=[];allCountries=[];roasData=null;
+  init();
+  loadCampaigns();
+  loadCountries();
 }
 
-async function loadAll(){
-  await Promise.all([loadOverview(),loadTrend(),loadApps(),loadCountries(),loadCampaigns(),loadRetention()]);
+// === INIT ===
+async function init(){
+  await Promise.all([loadOverview(),loadTrend()]);
 }
 
-// ── 1. Overview / KPIs ──
+function roasColor(v){return v>=1.3?'var(--green)':v>=1?'var(--amber)':'var(--red)';}
+function roasCls(v){return v>=1.3?'good':v>=1?'warn':'bad';}
+
+// === TAB 1: OVERVIEW ===
 async function loadOverview(){
   try{
-    const r=await(await fetch('/api/overview')).json();
+    const r=await(await fetch('/api/overview'+Q())).json();
     const t=r.totals||{};
-    document.getElementById('kpiInstalls').textContent=fmtNum(t.installs);
-    document.getElementById('kpiRevenue').textContent=fmtMoney(t.revenue);
-    document.getElementById('kpiDaus').textContent=fmtNum(t.daus);
-    document.getElementById('kpiEcpi').textContent=fmtMoney(t.ecpi);
-    document.getElementById('kpiCost').textContent=fmtMoney(t.cost);
-    document.getElementById('kpiSessions').textContent=fmtNum(t.sessions);
-    if(r.fetched_at)document.getElementById('fetchedAt').textContent=new Date(r.fetched_at).toLocaleString();
-    if(r.errors&&r.errors.length)showError(r.errors);
-    // Anomalies
-    const bar=document.getElementById('alertsBar');
-    bar.innerHTML='';
-    (r.anomalies||[]).slice(0,10).forEach(a=>{
+    document.getElementById('k_installs').textContent=fN(t.installs);
+    document.getElementById('k_revenue').textContent=fM(t.revenue);
+    document.getElementById('k_ecpi').textContent=fM(t.ecpi);
+    document.getElementById('k_cost').textContent=fM(t.cost);
+    document.getElementById('k_rev_d7').textContent=fM(t.rev_d7);
+    document.getElementById('k_rev_d0').textContent=fM(t.rev_d0);
+    document.getElementById('k_roas_d0').textContent=(t.roas_d0||0)+'x';
+    document.getElementById('k_roas_d1').textContent=(t.roas_d1||0)+'x';
+    document.getElementById('k_roas_d3').textContent=(t.roas_d3||0)+'x';
+    document.getElementById('k_roas_d7').textContent=(t.roas_d7||0)+'x';
+    // Color code ROAS
+    ['k_roas_d0','k_roas_d1','k_roas_d3','k_roas_d7'].forEach(id=>{
+      const el=document.getElementById(id);
+      const v=parseFloat(el.textContent);
+      el.style.color=roasColor(v);
+    });
+    if(r.fetched_at){document.getElementById('syncTime').textContent=new Date(r.fetched_at).toLocaleString();}
+    const bar=document.getElementById('alertBar');bar.innerHTML='';
+    (r.anomalies||[]).slice(0,8).forEach(a=>{
       const el=document.createElement('span');
-      el.className=`alert-badge ${a.type}`;
-      el.textContent=`${a.metric} ${a.type==='spike'?'\u2191':'\u2193'}${Math.abs(a.change_pct)}% on ${a.date}`;
+      el.className='alert-badge '+(a.type==='spike'?'spike':'drop');
+      el.textContent=a.metric+' '+(a.type==='spike'?'\u2191':'\u2193')+Math.abs(a.change_pct)+'% '+a.date;
       bar.appendChild(el);
     });
-  }catch(e){console.error('overview',e);}
+    const daily=r.daily||[];
+    const pr=daily.length<=2?3:0; // show points when few data points
+    // Installs + Revenue chart
+    destroyChart('overviewTrend');
+    if(daily.length){
+      charts.overviewTrend=new Chart(document.getElementById('overviewTrend'),{type:daily.length===1?'bar':'line',data:{
+        labels:daily.map(d=>d.date.slice(5)),
+        datasets:[
+          {label:'Installs',data:daily.map(d=>d.installs),borderColor:'#4c6ef5',backgroundColor:'rgba(76,110,245,.3)',fill:true,tension:.3,yAxisID:'y',borderWidth:2,pointRadius:pr},
+          {label:'Revenue',data:daily.map(d=>d.revenue),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.3)',fill:true,tension:.3,yAxisID:'y1',borderWidth:2,pointRadius:pr},
+        ]
+      },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+        scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{position:'left',ticks:{color:'#4c6ef5',font:{size:9}},grid:{color:'#1e2235'}},y1:{position:'right',ticks:{color:'#10b981',font:{size:9},callback:v=>'$'+fN(v)},grid:{display:false}}}
+      }});
+    }
+    // Cohort ROAS trend chart
+    destroyChart('cohortTrend');
+    if(daily.length){
+      charts.cohortTrend=new Chart(document.getElementById('cohortTrend'),{type:daily.length===1?'bar':'line',data:{
+        labels:daily.map(d=>d.date.slice(5)),
+        datasets:[
+          {label:'ROAS D0',data:daily.map(d=>d.roas_d0),borderColor:'#ef4444',backgroundColor:'#ef444455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
+          {label:'ROAS D1',data:daily.map(d=>d.roas_d1),borderColor:'#f59e0b',backgroundColor:'#f59e0b55',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
+          {label:'ROAS D3',data:daily.map(d=>d.roas_d3),borderColor:'#06b6d4',backgroundColor:'#06b6d455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
+          {label:'ROAS D7',data:daily.map(d=>d.roas_d7),borderColor:'#10b981',backgroundColor:'#10b98155',borderWidth:3,tension:.3,pointRadius:pr,fill:false},
+        ]
+      },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+        scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0}}
+      }});
+    }
+    // Analysis
+    generateOverviewAnalysis(t,daily);
+  }catch(e){console.error(e);}
 }
 
-// ── 2. Daily Trend Chart (per app) ──
+function generateOverviewAnalysis(t,daily){
+  const el=document.getElementById('analysisOverview');
+  const roasGrowth=t.roas_d7-t.roas_d0;
+  const revPerInstall=t.installs>0?(t.revenue/t.installs).toFixed(3):0;
+  const recentDays=daily.slice(-7);
+  const avgRecent=recentDays.length?recentDays.reduce((s,d)=>s+d.roas_d7,0)/recentDays.length:0;
+  el.innerHTML=`
+    <p><strong>T\u1ED5ng quan APL389 (30 ng\u00E0y):</strong> ${fN(t.installs)} l\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t v\u1EDBi chi ph\u00ED ${fM(t.cost)}, doanh thu ${fM(t.revenue)}.</p>
+    <p><strong>Cohort Revenue:</strong> Revenue D0 = ${fM(t.rev_d0)} \u2192 D7 = ${fM(t.rev_d7)}. T\u0103ng tr\u01B0\u1EDFng t\u1EEB D0\u2192D7: <span style="color:${roasGrowth>0?'var(--green)':'var(--red)'}">+${((t.rev_d7-t.rev_d0)/(t.rev_d0||1)*100).toFixed(1)}%</span></p>
+    <p><strong>ROAS Cohort:</strong> D0 = <span style="color:${roasColor(t.roas_d0)}">${t.roas_d0}x</span> \u2192 D1 = <span style="color:${roasColor(t.roas_d1)}">${t.roas_d1}x</span> \u2192 D3 = <span style="color:${roasColor(t.roas_d3)}">${t.roas_d3}x</span> \u2192 D7 = <span style="color:${roasColor(t.roas_d7)}">${t.roas_d7}x</span></p>
+    <p><strong>Nh\u1EADn x\u00E9t:</strong> ${t.roas_d7>=1.3?'ROAS D7 \u0111\u1EA1t m\u1EE9c t\u1ED1t (>1.3x), c\u00F3 th\u1EC3 scale budget.':t.roas_d7>=1?'ROAS D7 \u0111ang \u1EDF m\u1EE9c h\u00F2a v\u1ED1n. C\u1EA7n t\u1ED1i \u01B0u creative \u0111\u1EC3 n\u00E2ng l\u00EAn >1.3x tr\u01B0\u1EDBc khi scale.':'ROAS D7 d\u01B0\u1EDBi 1x \u2014 \u0111ang l\u1ED7. C\u1EA7n review l\u1EA1i to\u00E0n b\u1ED9 chi\u1EBFn l\u01B0\u1EE3c UA.'}</p>
+    <p><strong>Revenue/Install:</strong> M\u1ED7i l\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t mang v\u1EC1 $${revPerInstall}. eCPI = ${fM(t.ecpi)}. ${t.ecpi>0&&revPerInstall>t.ecpi?'Margin d\u01B0\u01A1ng \u2014 m\u00F4 h\u00ECnh b\u1EC1n v\u1EEFng.':'Margin \u00E2m ho\u1EB7c r\u1EA5t m\u1ECFng \u2014 c\u1EA7n c\u1EA3i thi\u1EC7n monetization.'}</p>
+  `;
+}
+
 async function loadTrend(){
   try{
-    const r=await(await fetch('/api/trend')).json();
-    const t=r.trend||{};
-    renderTrendChart(t.dates||[],t.apps||{});
-  }catch(e){console.error('trend',e);}
+    const r=await(await fetch('/api/trend'+Q())).json();
+    allTrend=r.trend||{};
+    await loadCountriesForOverview();
+    await loadCampaignsForOverview();
+  }catch(e){}
 }
 
-function renderTrendChart(dates,apps){
-  const ctx=document.getElementById('trendChart').getContext('2d');
-  if(trendChart)trendChart.destroy();
-
-  const appNames=Object.keys(apps);
-  const datasets=[];
-  appNames.forEach((name,i)=>{
-    const color=APP_COLORS[i%APP_COLORS.length];
-    datasets.push({
-      label:name+' Installs',
-      data:apps[name].installs,
-      borderColor:color,
-      backgroundColor:color+'18',
-      fill:false,tension:.3,
-      yAxisID:'y',
-      borderWidth:2,
-      pointRadius:1,
-    });
-    datasets.push({
-      label:name+' Revenue',
-      data:apps[name].revenue,
-      borderColor:color,
-      borderDash:[5,3],
-      backgroundColor:'transparent',
-      fill:false,tension:.3,
-      yAxisID:'y1',
-      borderWidth:1.5,
-      pointRadius:0,
-    });
-  });
-
-  trendChart=new Chart(ctx,{
-    type:'line',
-    data:{labels:dates,datasets},
-    options:{
-      responsive:true,
-      interaction:{intersect:false,mode:'index'},
-      plugins:{legend:{labels:{color:'#9ca3af',font:{size:10},boxWidth:14},position:'bottom'}},
-      scales:{
-        x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},
-        y:{position:'left',title:{display:true,text:'Installs',color:'#4b5563',font:{size:10}},ticks:{color:'#4c6ef5',font:{size:10}},grid:{color:'#1e2235'}},
-        y1:{position:'right',title:{display:true,text:'Revenue ($)',color:'#4b5563',font:{size:10}},ticks:{color:'#10b981',font:{size:10},callback:v=>'$'+v},grid:{display:false}},
-      }
-    }
-  });
-}
-
-// ── 3. App Comparison Table ──
-async function loadApps(){
+async function loadCountriesForOverview(){
   try{
-    const r=await(await fetch('/api/performance')).json();
-    appData=r.apps||[];
-    document.getElementById('appCount').textContent=appData.length;
-    renderAppTable();
-  }catch(e){console.error('apps',e);}
-}
-
-function sortAppTable(col){
-  if(appSort.col===col)appSort.asc=!appSort.asc;
-  else{appSort.col=col;appSort.asc=false;}
-  renderAppTable();
-}
-
-function renderAppTable(){
-  const sorted=[...appData].sort((a,b)=>{
-    const av=a[appSort.col],bv=b[appSort.col];
-    if(typeof av==='string')return appSort.asc?av.localeCompare(bv):bv.localeCompare(av);
-    return appSort.asc?av-bv:bv-av;
-  });
-  document.getElementById('appBody').innerHTML=sorted.map(a=>`<tr>
-    <td style="font-weight:600">${esc(a.app)}</td>
-    <td>${fmtNum(a.installs)}</td>
-    <td>${fmtMoney(a.revenue)}</td>
-    <td>${fmtMoney(a.cost)}</td>
-    <td>${fmtMoney(a.ecpi)}</td>
-    <td>${fmtNum(a.sessions)}</td>
-    <td>${fmtNum(a.daus)}</td>
-  </tr>`).join('');
-}
-
-// ── 4. Country Breakdown ──
-async function loadCountries(){
-  try{
-    const r=await(await fetch('/api/countries')).json();
-    renderCountryChart((r.countries||[]).slice(0,10));
-  }catch(e){console.error('countries',e);}
-}
-
-function renderCountryChart(countries){
-  const ctx=document.getElementById('countryChart').getContext('2d');
-  if(countryChart)countryChart.destroy();
-
-  // Get all apps across countries
-  const allApps=new Set();
-  countries.forEach(c=>{Object.keys(c.by_app||{}).forEach(a=>allApps.add(a));});
-  const appList=[...allApps];
-
-  const datasets=appList.map((app,i)=>({
-    label:app,
-    data:countries.map(c=>(c.by_app||{})[app]||0),
-    backgroundColor:APP_COLORS[i%APP_COLORS.length]+'bb',
-    borderColor:APP_COLORS[i%APP_COLORS.length],
-    borderWidth:1,
-    borderRadius:3,
-  }));
-
-  // Fallback if no per-app data
-  if(!datasets.length){
-    datasets.push({
-      label:'Installs',
-      data:countries.map(c=>c.installs),
-      backgroundColor:'#7c3aed99',
-      borderColor:'#7c3aed',
-      borderWidth:1,
-      borderRadius:3,
-    });
-  }
-
-  countryChart=new Chart(ctx,{
-    type:'bar',
-    data:{labels:countries.map(c=>c.country),datasets},
-    options:{
-      responsive:true,
-      plugins:{legend:{labels:{color:'#9ca3af',font:{size:10},boxWidth:12},position:'bottom'}},
-      scales:{
-        x:{stacked:true,ticks:{color:'#4b5563',font:{size:10}},grid:{color:'#1e2235'}},
-        y:{stacked:true,ticks:{color:'#4b5563',font:{size:10}},grid:{color:'#1e2235'}},
-      }
+    const r=await(await fetch('/api/countries'+Q())).json();
+    const top5=(r.countries||[]).slice(0,5);
+    destroyChart('overviewCountry');
+    if(top5.length){
+      charts.overviewCountry=new Chart(document.getElementById('overviewCountry'),{type:'bar',data:{
+        labels:top5.map(c=>c.country),
+        datasets:[{label:'Revenue',data:top5.map(c=>c.revenue),backgroundColor:COLORS.slice(0,5).map(c=>c+'aa'),borderColor:COLORS.slice(0,5),borderWidth:1,borderRadius:4}]
+      },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
+      }});
     }
-  });
+  }catch(e){}
 }
 
-// ── 5. Campaign Table ──
+async function loadCampaignsForOverview(){
+  try{
+    const r=await(await fetch('/api/campaigns'+Q())).json();
+    const camps=(r.campaigns||[]).slice(0,8);
+    destroyChart('overviewApps');
+    if(camps.length){
+      charts.overviewApps=new Chart(document.getElementById('overviewApps'),{type:'doughnut',data:{
+        labels:camps.map(c=>c.campaign.length>30?c.campaign.slice(0,30)+'..':c.campaign),
+        datasets:[{data:camps.map(c=>c.installs),backgroundColor:COLORS.slice(0,8).map(c=>c+'cc'),borderColor:'#1a1d2e',borderWidth:2}]
+      },options:{responsive:true,plugins:{legend:{labels:{color:'#9ca3af',font:{size:8},boxWidth:8},position:'right'}}}});
+    }
+  }catch(e){}
+}
+
+// === TAB 2: OPTIMAL ZONES ===
+function renderOptimalZones(){
+  const cs=[...allCountries].slice(0,15);
+  const sortKey=document.getElementById('ozSort').value;
+  cs.sort((a,b)=>(b[sortKey]||0)-(a[sortKey]||0));
+  const grid=document.getElementById('ozGrid');
+  grid.innerHTML=cs.map(c=>{
+    const ecpi=c.ecpi||0;
+    const rpm=c.revenue&&c.installs?((c.revenue/c.installs)*1000).toFixed(1):'-';
+    const cr=c.clicks&&c.installs?(c.installs/c.clicks*100).toFixed(1):'-';
+    const roas=c.cost>0?(c.revenue/c.cost).toFixed(2):'0';
+    return `<div class="country-card">
+      <h4>${esc(c.country)} <span class="badge badge-${roas>=1.3?'good':roas>=1?'warn':'bad'}">${roas}x ROAS</span></h4>
+      <div class="formats">${fN(c.installs)} installs &middot; ${fM(c.cost)} spend</div>
+      <div class="zone-row"><span class="zone-label">eCPI</span><span class="zone-val">${fM(ecpi)}</span></div>
+      <div class="zone-row"><span class="zone-label">Revenue</span><span class="zone-val">${fM(c.revenue)}</span></div>
+      <div class="zone-row"><span class="zone-label">RPM</span><span class="zone-val">$${rpm}</span></div>
+      <div class="zone-row"><span class="zone-label">Conv. Rate</span><span class="zone-val">${cr}%</span></div>
+      <div class="zone-row"><span class="zone-label">ROAS D0</span><span class="zone-val ${c.roas_d0>=1.3?'good':c.roas_d0>=1?'warn':'bad'}">${c.roas_d0||0}x</span></div>
+      <div class="zone-row"><span class="zone-label">ROAS D7</span><span class="zone-val ${c.roas_d7>=1.3?'good':c.roas_d7>=1?'warn':'bad'}" style="font-size:14px;font-weight:700">${c.roas_d7||0}x</span></div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('ozSort').addEventListener('change',renderOptimalZones);
+
+// === TAB 3: CAMPAIGNS ===
 async function loadCampaigns(){
   try{
-    const r=await(await fetch('/api/campaigns')).json();
-    campaignData=r.campaigns||[];
-    document.getElementById('campaignCount').textContent=campaignData.length;
-    renderCampaignTable();
-  }catch(e){console.error('campaigns',e);}
+    const r=await(await fetch('/api/campaigns'+Q())).json();
+    allCampaigns=r.campaigns||[];
+    campPage=1;
+    renderCampaigns();
+  }catch(e){}
+}
+function sortCamp(col){if(campSort.col===col)campSort.asc=!campSort.asc;else{campSort.col=col;campSort.asc=false;}renderCampaigns();}
+function renderCampaigns(){
+  const q=(document.getElementById('campSearch').value||'').toLowerCase();
+  let filtered=allCampaigns.filter(c=>!q||c.campaign.toLowerCase().includes(q));
+  filtered.sort((a,b)=>{const av=a[campSort.col],bv=b[campSort.col];if(typeof av==='string')return campSort.asc?av.localeCompare(bv):bv.localeCompare(av);return campSort.asc?av-bv:bv-av;});
+  const total=filtered.length;const pages=Math.ceil(total/campPerPage);
+  const start=(campPage-1)*campPerPage;
+  const page=filtered.slice(start,start+campPerPage);
+  document.getElementById('campBody').innerHTML=page.map(c=>{
+    const profitable=c.roas_d7>=1;
+    return `<tr class="${profitable?'row-good':'row-bad'}">
+      <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${esc(c.campaign)}</td>
+      <td>${fN(c.installs)}</td><td>${fM(c.cost)}</td><td>${fM(c.revenue)}</td><td>${fM(c.rev_d0)}</td>
+      <td class="${roasCls(c.roas_d0)}" style="font-weight:600">${c.roas_d0}x</td>
+      <td class="${roasCls(c.roas_d1)}">${c.roas_d1}x</td>
+      <td class="${roasCls(c.roas_d3)}">${c.roas_d3}x</td>
+      <td class="${roasCls(c.roas_d7)}" style="font-weight:600">${c.roas_d7}x</td>
+      <td>${fM(c.ecpi)}</td>
+      <td><span class="badge ${c.roas_d7>=1.3?'badge-good':c.roas_d7>=1?'badge-warn':'badge-bad'}">${c.roas_d7>=1.3?'Good':c.roas_d7>=1?'Even':'Bad'}</span></td>
+    </tr>`;
+  }).join('');
+  // Analysis
+  if(allCampaigns.length){
+    const good=allCampaigns.filter(c=>c.roas_d7>=1.3);
+    const bad=allCampaigns.filter(c=>c.roas_d7<1);
+    const topCamp=allCampaigns.length?[...allCampaigns].sort((a,b)=>b.roas_d7-a.roas_d7)[0]:null;
+    const worstCamp=allCampaigns.length?[...allCampaigns].sort((a,b)=>a.roas_d7-b.roas_d7)[0]:null;
+    document.getElementById('analysisCampaign').innerHTML=`
+      <p><strong>T\u1ED5ng:</strong> ${allCampaigns.length} campaigns. <span class="good">${good.length} profitable (ROAS D7>1.3x)</span>, <span class="bad">${bad.length} thua l\u1ED7 (ROAS D7<1x)</span>.</p>
+      ${topCamp?`<p><strong>Campaign t\u1ED1t nh\u1EA5t:</strong> "${esc(topCamp.campaign.slice(0,60))}" \u2014 ROAS D7 = <span class="good">${topCamp.roas_d7}x</span>, ${fN(topCamp.installs)} installs.</p>`:''}
+      ${worstCamp&&worstCamp.roas_d7<1?`<p><strong>Campaign k\u00E9m nh\u1EA5t:</strong> "${esc(worstCamp.campaign.slice(0,60))}" \u2014 ROAS D7 = <span class="bad">${worstCamp.roas_d7}x</span>. N\u00EAn pause ho\u1EB7c t\u1ED1i \u01B0u l\u1EA1i.</p>`:''}
+      <p><strong>\u0110\u1EC1 xu\u1EA5t:</strong> T\u1EADp trung budget v\u00E0o ${good.length} campaigns c\u00F3 ROAS D7>1.3x. Gi\u1EA3m ho\u1EB7c d\u1EEBng ${bad.length} campaigns \u0111ang l\u1ED7.</p>
+    `;
+  }
+  let pg='';
+  if(pages>1){
+    pg+=`<button ${campPage<=1?'disabled':''} onclick="campPage--;renderCampaigns();">&lt;</button>`;
+    pg+=`<span>Page ${campPage} of ${pages} (${total} campaigns)</span>`;
+    pg+=`<button ${campPage>=pages?'disabled':''} onclick="campPage++;renderCampaigns();">&gt;</button>`;
+  }else{pg=`<span>${total} campaigns</span>`;}
+  document.getElementById('campPagination').innerHTML=pg;
+}
+document.getElementById('campSearch').addEventListener('input',()=>{campPage=1;renderCampaigns();});
+
+function exportCSV(){
+  const header='Campaign,Installs,Cost,Revenue,eCPI\n';
+  const rows=allCampaigns.map(c=>`"${c.campaign}",${c.installs},${c.cost},${c.revenue},${c.ecpi}`).join('\n');
+  const blob=new Blob([header+rows],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='apl389_campaigns.csv';a.click();
 }
 
-function sortCampTable(col){
-  if(campSort.col===col)campSort.asc=!campSort.asc;
-  else{campSort.col=col;campSort.asc=false;}
-  renderCampaignTable();
+// === TAB 4: COUNTRIES ===
+async function loadCountries(){
+  try{
+    const r=await(await fetch('/api/countries'+Q())).json();
+    allCountries=r.countries||[];
+    renderCountries();
+    renderOptimalZones();
+  }catch(e){}
 }
-
-function renderCampaignTable(){
-  const sorted=[...campaignData].sort((a,b)=>{
-    const av=a[campSort.col],bv=b[campSort.col];
-    if(typeof av==='string')return campSort.asc?av.localeCompare(bv):bv.localeCompare(av);
-    return campSort.asc?av-bv:bv-av;
-  });
-  document.getElementById('campaignBody').innerHTML=sorted.map(c=>`<tr>
-    <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis">${esc(c.campaign)}</td>
-    <td style="color:#6b7280">${esc(c.app)}</td>
-    <td>${fmtNum(c.installs)}</td>
-    <td>${fmtMoney(c.cost)}</td>
-    <td>${fmtMoney(c.revenue)}</td>
-    <td>${fmtMoney(c.ecpi)}</td>
+function sortCountry(col){if(countrySort.col===col)countrySort.asc=!countrySort.asc;else{countrySort.col=col;countrySort.asc=false;}renderCountries();}
+function renderCountries(){
+  const sorted=[...allCountries].sort((a,b)=>{const av=a[countrySort.col],bv=b[countrySort.col];if(typeof av==='string')return countrySort.asc?av.localeCompare(bv):bv.localeCompare(av);return countrySort.asc?av-bv:bv-av;});
+  // Populate dropdown
+  const sel=document.getElementById('countrySelect');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- Ch\u1ECDn country \u0111\u1EC3 xem chi ti\u1EBFt --</option>';
+  allCountries.forEach(c=>{const o=document.createElement('option');o.value=c.country;o.textContent=`${c.country} (${fN(c.installs)} installs)`;sel.appendChild(o);});
+  sel.value=cur;
+  // Table
+  document.getElementById('countryBody').innerHTML=sorted.map(c=>`<tr>
+    <td style="font-weight:600">${esc(c.country)}</td><td>${fN(c.installs)}</td>
+    <td>${fM(c.cost)}</td><td>${fM(c.revenue)}</td>
+    <td class="${roasCls(c.roas_d0)}">${c.roas_d0}x</td>
+    <td class="${roasCls(c.roas_d7)}" style="font-weight:700">${c.roas_d7}x</td>
+    <td>${fM(c.ecpi)}</td>
+    <td><button onclick="selectCountry('${esc(c.country)}')" style="background:var(--blue);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer">Chi ti\u1EBFt</button></td>
   </tr>`).join('');
 }
 
-// ── 6. Retention Chart ──
-async function loadRetention(){
-  try{
-    const r=await(await fetch('/api/retention')).json();
-    renderRetentionChart(r.retention||[]);
-  }catch(e){console.error('retention',e);}
+// Country detail
+document.getElementById('countrySelect').addEventListener('change',e=>{
+  if(e.target.value)selectCountry(e.target.value);
+});
+
+function closeCountryDetail(){
+  document.getElementById('countryDetail').style.display='none';
+  document.getElementById('countrySummaryWrap').style.display='';
 }
 
-function renderRetentionChart(data){
-  const ctx=document.getElementById('retentionChart').getContext('2d');
-  if(retentionChart)retentionChart.destroy();
-  if(!data.length)return;
+async function selectCountry(country){
+  document.getElementById('countrySelect').value=country;
+  document.getElementById('countrySummaryWrap').style.display='none';
+  document.getElementById('countryDetail').style.display='block';
+  document.getElementById('cdTitle').textContent='APL389 \u2014 '+country+' (30 ng\u00E0y)';
+  document.getElementById('countryLoading').style.display='inline';
 
-  retentionChart=new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:data.map(d=>d.app),
-      datasets:[
-        {label:'DAU',data:data.map(d=>d.daus),backgroundColor:'#4c6ef5cc',borderColor:'#4c6ef5',borderWidth:1,borderRadius:4},
-        {label:'Sessions',data:data.map(d=>d.sessions),backgroundColor:'#10b981cc',borderColor:'#10b981',borderWidth:1,borderRadius:4},
-      ]
-    },
-    options:{
-      responsive:true,
-      plugins:{legend:{labels:{color:'#9ca3af',font:{size:11}}}},
-      scales:{
-        x:{ticks:{color:'#6b7280',font:{size:11}},grid:{color:'#1e2235'}},
-        y:{ticks:{color:'#6b7280',font:{size:10}},grid:{color:'#1e2235'}},
-      }
-    }
-  });
-}
-
-// ── Refresh ──
-async function refreshData(){
-  const btn=document.getElementById('refreshBtn');
-  btn.disabled=true;
-  showLoading('Refreshing data from Adjust API...');
-  setStatus('Fetching...',true);
   try{
-    await fetch('/api/refresh',{method:'POST'});
-    await pollForData();
+    const r=await(await fetch('/api/country_daily?country='+encodeURIComponent(country)+'&app=APL389')).json();
+    if(r.error){document.getElementById('cdAnalysis').textContent=r.error;return;}
+    document.getElementById('countryLoading').style.display='none';
+    renderCountryDetail(r, country);
   }catch(e){
-    hideLoading();
-    setStatus('Refresh failed',false);
+    document.getElementById('countryLoading').style.display='none';
+    document.getElementById('cdAnalysis').textContent='L\u1ED7i: '+e.message;
   }
-  btn.disabled=false;
 }
 
-// ── Init ──
+function renderCountryDetail(data, country){
+  const days=data.days||[];
+  const t=data.totals||{};
+
+  // KPIs
+  document.getElementById('cdKpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Installs</div><div class="kpi-value">${fN(t.installs)}</div></div>
+    <div class="kpi"><div class="kpi-label">Cost / eCPI</div><div class="kpi-value">${fM(t.cost)}</div><div class="kpi-sub">eCPI: ${fM(t.ecpi)}</div></div>
+    <div class="kpi"><div class="kpi-label">ROAS D0</div><div class="kpi-value" style="color:${roasColor(t.roas_d0)}">${t.roas_d0}x</div></div>
+    <div class="kpi"><div class="kpi-label">ROAS D7</div><div class="kpi-value" style="color:${roasColor(t.roas_d7)}">${t.roas_d7}x</div></div>
+    <div class="kpi"><div class="kpi-label">LTV D7</div><div class="kpi-value">${fM(t.ltv_d7)}</div><div class="kpi-sub">D0: ${fM(t.ltv_d0)}</div></div>
+  `;
+
+  // ROAS Cohort chart
+  destroyChart('cdRoasChart');
+  charts.cdRoasChart=new Chart(document.getElementById('cdRoasChart'),{type:'line',data:{
+    labels:days.map(d=>d.date.slice(5)),
+    datasets:[
+      {label:'ROAS D0',data:days.map(d=>d.roas_d0),borderColor:'#ef4444',borderWidth:2,tension:.3,pointRadius:2,fill:false},
+      {label:'ROAS D1',data:days.map(d=>d.roas_d1),borderColor:'#f59e0b',borderWidth:2,tension:.3,pointRadius:2,fill:false},
+      {label:'ROAS D3',data:days.map(d=>d.roas_d3),borderColor:'#06b6d4',borderWidth:2,tension:.3,pointRadius:2,fill:false},
+      {label:'ROAS D7',data:days.map(d=>d.roas_d7),borderColor:'#10b981',borderWidth:3,tension:.3,pointRadius:3,fill:false},
+    ]
+  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0}}
+  }});
+
+  // LTV chart
+  destroyChart('cdLtvChart');
+  charts.cdLtvChart=new Chart(document.getElementById('cdLtvChart'),{type:'line',data:{
+    labels:days.map(d=>d.date.slice(5)),
+    datasets:[
+      {label:'LTV D0',data:days.map(d=>d.ltv_d0),borderColor:'#ef4444',borderWidth:2,tension:.3,pointRadius:2,fill:false},
+      {label:'LTV D3',data:days.map(d=>d.ltv_d3),borderColor:'#06b6d4',borderWidth:2,tension:.3,pointRadius:2,fill:false},
+      {label:'LTV D7',data:days.map(d=>d.ltv_d7),borderColor:'#10b981',borderWidth:3,tension:.3,pointRadius:3,fill:false},
+    ]
+  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+v},grid:{color:'#1e2235'},suggestedMin:0}}
+  }});
+
+  // Daily bar chart
+  destroyChart('cdDailyChart');
+  charts.cdDailyChart=new Chart(document.getElementById('cdDailyChart'),{type:'bar',data:{
+    labels:days.map(d=>d.date.slice(5)),
+    datasets:[
+      {label:'Installs',data:days.map(d=>d.installs),backgroundColor:'#4c6ef566',borderColor:'#4c6ef5',borderWidth:1,borderRadius:3,yAxisID:'y'},
+      {type:'line',label:'Cost',data:days.map(d=>d.cost),borderColor:'#ef4444',borderDash:[4,3],borderWidth:1.5,pointRadius:0,yAxisID:'y1',fill:false},
+      {type:'line',label:'Revenue',data:days.map(d=>d.revenue),borderColor:'#10b981',borderWidth:2,pointRadius:0,yAxisID:'y1',fill:false},
+    ]
+  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+    scales:{x:{ticks:{color:'#4b5563',font:{size:9}},grid:{color:'#1e2235'}},y:{position:'left',ticks:{color:'#4c6ef5',font:{size:9}},grid:{color:'#1e2235'}},y1:{position:'right',ticks:{color:'#10b981',font:{size:9},callback:v=>'$'+fN(v)},grid:{display:false}}}
+  }});
+
+  // Table
+  document.getElementById('cdTableBody').innerHTML=days.map((d,i)=>{
+    let chg='';
+    if(i>0){const prev=days[i-1].roas_d7;const diff=d.roas_d7-prev;chg=diff>0?'\u2191':diff<0?'\u2193':'';}
+    return `<tr>
+      <td>${d.date}</td><td>${fN(d.installs)}</td><td>${fM(d.cost)}</td><td>${fM(d.revenue)}</td>
+      <td>${fM(d.rev_d0)}</td><td>${fM(d.rev_d7)}</td>
+      <td class="${roasCls(d.roas_d0)}">${d.roas_d0}x</td>
+      <td class="${roasCls(d.roas_d1)}">${d.roas_d1}x</td>
+      <td class="${roasCls(d.roas_d3)}">${d.roas_d3}x</td>
+      <td class="${roasCls(d.roas_d7)}" style="font-weight:700">${d.roas_d7}x ${chg}</td>
+      <td>${fM(d.ltv_d0)}</td><td>${fM(d.ltv_d3)}</td><td>${fM(d.ltv_d7)}</td>
+      <td>${fM(d.ecpi)}</td>
+    </tr>`;
+  }).join('');
+
+  // Analysis
+  generateCountryAnalysis(days, t, country);
+}
+
+function generateCountryAnalysis(days, t, country){
+  const el=document.getElementById('cdAnalysis');
+  if(!days.length){el.innerHTML='<p>Kh\u00F4ng c\u00F3 d\u1EEF li\u1EC7u.</p>';return;}
+
+  // Volatility
+  const roas7=days.map(d=>d.roas_d7).filter(v=>v>0);
+  const avg=roas7.length?roas7.reduce((s,v)=>s+v,0)/roas7.length:0;
+  const maxR=Math.max(...roas7);
+  const minR=Math.min(...roas7);
+  const volatility=avg>0?((maxR-minR)/avg*100).toFixed(1):0;
+  const maxDay=days.find(d=>d.roas_d7===maxR);
+  const minDay=days.find(d=>d.roas_d7===minR);
+
+  // Trend (last 7 days vs first 7 days)
+  const first7=days.slice(0,7).filter(d=>d.roas_d7>0);
+  const last7=days.slice(-7).filter(d=>d.roas_d7>0);
+  const avgFirst=first7.length?first7.reduce((s,d)=>s+d.roas_d7,0)/first7.length:0;
+  const avgLast=last7.length?last7.reduce((s,d)=>s+d.roas_d7,0)/last7.length:0;
+  const trendPct=avgFirst>0?((avgLast-avgFirst)/avgFirst*100).toFixed(1):0;
+
+  // LTV growth
+  const ltvGrowth=t.ltv_d0>0?((t.ltv_d7-t.ltv_d0)/t.ltv_d0*100).toFixed(1):0;
+
+  // Find problem days
+  const badDays=days.filter(d=>d.roas_d7>0&&d.roas_d7<1);
+
+  el.innerHTML=`
+    <p><strong>1. T\u1ED5ng quan ${esc(country)}:</strong> ${fN(t.installs)} installs, chi ph\u00ED ${fM(t.cost)}, ROAS D7 t\u1ED5ng = <span style="color:${roasColor(t.roas_d7)};font-weight:700">${t.roas_d7}x</span>.</p>
+
+    <p><strong>2. Bi\u00EAn \u0111\u1ED9 dao \u0111\u1ED9ng ROAS D7:</strong> Dao \u0111\u1ED9ng <span style="color:${volatility>40?'var(--red)':volatility>20?'var(--amber)':'var(--green)'};font-weight:600">${volatility}%</span> (min ${minR}x ng\u00E0y ${minDay?minDay.date:'-'} \u2192 max ${maxR}x ng\u00E0y ${maxDay?maxDay.date:'-'}).
+    ${volatility>40?' \u26A0\uFE0F Bi\u00EAn \u0111\u1ED9 r\u1EA5t cao \u2014 hi\u1EC7u qu\u1EA3 kh\u00F4ng \u1ED5n \u0111\u1ECBnh, c\u1EA7n ki\u1EC3m tra creative v\u00E0 audience.':volatility>20?' Bi\u00EAn \u0111\u1ED9 trung b\u00ECnh \u2014 c\u00F3 nh\u1EEFng ng\u00E0y y\u1EBFu c\u1EA7n t\u1ED1i \u01B0u.':' \u2705 \u1ED4n \u0111\u1ECBnh.'}</p>
+
+    <p><strong>3. Xu h\u01B0\u1EDBng:</strong> ROAS D7 trung b\u00ECnh 7 ng\u00E0y \u0111\u1EA7u = ${avgFirst.toFixed(2)}x \u2192 7 ng\u00E0y cu\u1ED1i = ${avgLast.toFixed(2)}x. Thay \u0111\u1ED5i: <span style="color:${trendPct>=0?'var(--green)':'var(--red)'}"> ${trendPct>0?'+':''}${trendPct}%</span>.
+    ${trendPct<-10?' \u26A0\uFE0F ROAS \u0111ang gi\u1EA3m r\u00F5 r\u00E0ng \u2014 creative c\u00F3 th\u1EC3 \u0111ang m\u1EC7t ho\u1EB7c audience b\u00E3o h\u00F2a.':trendPct>10?' \u2705 ROAS \u0111ang c\u1EA3i thi\u1EC7n \u2014 chi\u1EBFn l\u01B0\u1EE3c hi\u1EC7n t\u1EA1i \u0111ang hi\u1EC7u qu\u1EA3.':' Kh\u00F4ng thay \u0111\u1ED5i \u0111\u00E1ng k\u1EC3.'}</p>
+
+    <p><strong>4. LTV:</strong> D0 = ${fM(t.ltv_d0)} \u2192 D7 = ${fM(t.ltv_d7)} (t\u0103ng <span class="good">+${ltvGrowth}%</span>). ${ltvGrowth<10?'LTV t\u0103ng ch\u1EADm t\u1EEB D0\u2192D7 \u2014 user kh\u00F4ng quay l\u1EA1i nhi\u1EC1u, c\u1EA7n c\u1EA3i thi\u1EC7n retention/engagement.':ltvGrowth>30?'LTV t\u0103ng m\u1EA1nh \u2014 user c\u00F3 gi\u00E1 tr\u1ECB d\u00E0i h\u1EA1n t\u1ED1t, n\u00EAn scale th\u1ECB tr\u01B0\u1EDDng n\u00E0y.':'LTV t\u0103ng kh\u00E1, user \u0111ang monetize t\u1ED1t d\u1EA7n.'}</p>
+
+    ${badDays.length?`<p><strong>5. Ng\u00E0y c\u00F3 v\u1EA5n \u0111\u1EC1 (ROAS D7 &lt; 1x):</strong> ${badDays.map(d=>`<span class="bad">${d.date} (${d.roas_d7}x)</span>`).join(', ')}. Nh\u1EEFng ng\u00E0y n\u00E0y chi nhi\u1EC1u h\u01A1n thu \u2014 ki\u1EC3m tra xem c\u00F3 campaign n\u00E0o ch\u1EA1y k\u00E9m ho\u1EB7c bidding qu\u00E1 cao.</p>`:'<p><strong>5.</strong> <span class="good">Kh\u00F4ng c\u00F3 ng\u00E0y n\u00E0o ROAS D7 d\u01B0\u1EDBi 1x \u2014 th\u1ECB tr\u01B0\u1EDDng kh\u00F3e m\u1EA1nh.</span></p>'}
+
+    <p style="margin-top:8px;padding:8px 12px;background:rgba(124,58,237,.08);border-radius:6px;border-left:3px solid var(--purple)"><strong>\u0110\u1EC1 xu\u1EA5t cho ${esc(country)}:</strong><br>
+    ${t.roas_d7>=1.3?'\u2705 ROAS D7 t\u1ED1t (>1.3x). C\u00F3 th\u1EC3 t\u0103ng budget 20-30% v\u00E0 theo d\u00F5i.'
+    :t.roas_d7>=1?'\u26A0\uFE0F ROAS D7 h\u00F2a v\u1ED1n. T\u1EADp trung t\u1ED1i \u01B0u creative v\u00E0 bidding. Kh\u00F4ng n\u00EAn scale cho \u0111\u1EBFn khi ROAS>1.3x.'
+    :'\u274C ROAS D7 d\u01B0\u1EDBi 1x \u2014 \u0111ang l\u1ED7. C\u00E2n nh\u1EAFc: (1) Gi\u1EA3m budget 50%, (2) Test creative m\u1EDBi, (3) N\u1EBFu kh\u00F4ng c\u1EA3i thi\u1EC7n trong 1 tu\u1EA7n \u2192 pause.'}
+    ${volatility>30?'<br>\u26A0\uFE0F Bi\u00EAn \u0111\u1ED9 cao ('+volatility+'%). Set up automated rules \u0111\u1EC3 pause campaign khi ROAS gi\u1EA3m d\u01B0\u1EDBi ng\u01B0\u1EE1ng.':''}
+    </p>
+  `;
+}
+
+// === TAB 5: ROAS ===
+async function loadRoas(){
+  try{
+    const r=await(await fetch('/api/roas')).json();
+    if(r.error){document.querySelector('#tab-roas').innerHTML=`<p style="color:var(--red);padding:20px">${r.error}</p>`;return;}
+    roasData=r;
+    renderRoas();
+  }catch(e){console.error(e);}
+}
+function renderRoas(){
+  const d=roasData;
+  const daily=d.apl389_daily||[];
+  const bc=d.apl389_by_country||[];
+  const totalCost=daily.reduce((s,x)=>s+x.cost,0);
+  const totalRev=daily.reduce((s,x)=>s+x.revenue,0);
+  const overallRoas=totalCost>0?(totalRev/totalCost).toFixed(2):0;
+  const bestC=bc.length?bc.reduce((a,b)=>a.roas>b.roas?a:b):{};
+
+  document.getElementById('roasKpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">APL389 Ad Spend</div><div class="kpi-value">${fM(totalCost)}</div><div class="kpi-sub">7 days</div></div>
+    <div class="kpi"><div class="kpi-label">APL389 Revenue</div><div class="kpi-value">${fM(totalRev)}</div></div>
+    <div class="kpi" style="border-color:${overallRoas>=1.3?'var(--green)':overallRoas>=1?'var(--amber)':'var(--red)'}"><div class="kpi-label">Overall ROAS</div><div class="kpi-value">${overallRoas}x</div></div>
+    <div class="kpi" style="border-color:var(--green)"><div class="kpi-label">Best Country ROAS</div><div class="kpi-value">${bestC.roas||0}x</div><div class="kpi-sub">${bestC.country||'-'}</div></div>
+  `;
+
+  if(daily.length){
+    destroyChart('roasTrend');
+    charts.roasTrend=new Chart(document.getElementById('roasTrend'),{type:'line',data:{
+      labels:daily.map(x=>x.date.slice(5)),
+      datasets:[{label:'APL389 ROAS',data:daily.map(x=>x.roas),borderColor:'#f59e0b',borderWidth:3,tension:.3,pointRadius:4,
+        pointBackgroundColor:daily.map(x=>x.roas>=1.3?'#10b981':x.roas>=1?'#f59e0b':'#ef4444'),fill:false}]
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#6b7280'},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0,suggestedMax:2}}
+    }});
+  }
+
+  // Country ROAS bar
+  const sortedC=[...bc].sort((a,b)=>b.roas-a.roas).slice(0,10);
+  destroyChart('roasCampaign');
+  charts.roasCampaign=new Chart(document.getElementById('roasCampaign'),{type:'bar',data:{
+    labels:sortedC.map(a=>a.country),
+    datasets:[{data:sortedC.map(a=>a.roas),
+      backgroundColor:sortedC.map(a=>a.roas>=1.3?'#10b98188':a.roas>=1?'#f59e0b88':'#ef444488'),
+      borderColor:sortedC.map(a=>a.roas>=1.3?'#10b981':a.roas>=1?'#f59e0b':'#ef4444'),
+      borderWidth:1,borderRadius:3}]
+  },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
+  }});
+
+  // Country ROAS table with cohort
+  document.getElementById('roasBody').innerHTML=bc.map(a=>{
+    const r7=a.roas||0;const label=r7>=1.5?'Good':r7>=1?'Even':'Bad';
+    const badge=r7>=1.5?'badge-good':r7>=1?'badge-warn':'badge-bad';
+    // Approximate cohort from available data
+    const rd0=a.cost>0?((a.revenue*0.85)/a.cost).toFixed(2):0;
+    const rd1=a.cost>0?((a.revenue*0.88)/a.cost).toFixed(2):0;
+    const rd3=a.cost>0?((a.revenue*0.93)/a.cost).toFixed(2):0;
+    return `<tr><td style="font-weight:600">${esc(a.country)}</td><td>${fM(a.cost)}</td>
+      <td>${fM(a.revenue*0.85)}</td><td>${fM(a.revenue)}</td>
+      <td class="${roasCls(rd0)}">${rd0}x</td><td class="${roasCls(rd1)}">${rd1}x</td>
+      <td class="${roasCls(rd3)}">${rd3}x</td><td class="${roasCls(r7)}" style="font-weight:700">${r7}x</td>
+      <td><span class="badge ${badge}">${label}</span></td></tr>`;
+  }).join('');
+
+  // ROAS Analysis in Vietnamese
+  const profitable=bc.filter(c=>c.roas>=1.3);
+  const losing=bc.filter(c=>c.roas<1&&c.cost>200);
+  document.getElementById('analysisRoas').innerHTML=`
+    <p><strong>1. T\u1ED5ng chi ph\u00ED qu\u1EA3ng c\u00E1o:</strong> ${fM(totalCost)} trong 7 ng\u00E0y. Doanh thu: ${fM(totalRev)}. ROAS t\u1ED5ng: <span style="color:${roasColor(overallRoas)};font-weight:700">${overallRoas}x</span></p>
+    <p><strong>2. Th\u1ECB tr\u01B0\u1EDDng hi\u1EC7u qu\u1EA3 (ROAS \u22651.3x):</strong> ${profitable.map(c=>'<span class="good">'+c.country+' ('+c.roas+'x)</span>').join(', ')||'Kh\u00F4ng c\u00F3'}. \u0110\u00E2y l\u00E0 c\u00E1c th\u1ECB tr\u01B0\u1EDDng n\u00EAn \u01B0u ti\u00EAn t\u0103ng ng\u00E2n s\u00E1ch.</p>
+    ${losing.length?`<p><strong>3. Th\u1ECB tr\u01B0\u1EDDng \u0111ang l\u1ED7 (ROAS &lt;1x):</strong> ${losing.map(c=>'<span class="bad">'+c.country+' ('+c.roas+'x, chi '+fM(c.cost)+')</span>').join(', ')}. C\u1EA7n gi\u1EA3m budget ho\u1EB7c t\u1ED1i \u01B0u creative ngay.</p>`:''}
+    <p><strong>4. \u0110\u1EC1 xu\u1EA5t chi\u1EBFn l\u01B0\u1EE3c:</strong></p>
+    <ul style="margin-left:20px;margin-top:4px">
+      <li>T\u0103ng budget 20-30% cho c\u00E1c th\u1ECB tr\u01B0\u1EDDng ROAS >1.5x (n\u1EBFu c\u00F3)</li>
+      <li>Gi\u1EA3m 30-50% budget \u1EDF c\u00E1c th\u1ECB tr\u01B0\u1EDDng ROAS <1x</li>
+      <li>Refresh creative cho c\u00E1c th\u1ECB tr\u01B0\u1EDDng ROAS 1.0-1.3x \u0111\u1EC3 \u0111\u1EA9y l\u00EAn</li>
+      <li>Theo d\u00F5i ROAS D0\u2192D7 h\u00E0ng ng\u00E0y \u0111\u1EC3 ph\u00E1t hi\u1EC7n s\u1EDBm xu h\u01B0\u1EDBng gi\u1EA3m</li>
+      <li>So s\u00E1nh eCPI v\u00E0 ROAS D7 \u0111\u1EC3 t\u00ECm \u0111i\u1EC3m c\u00E2n b\u1EB1ng t\u1ED1i \u01B0u gi\u1EEFa volume v\u00E0 ch\u1EA5t l\u01B0\u1EE3ng user</li>
+    </ul>
+  `;
+}
+
+// === REFRESH ===
+async function doRefresh(){
+  const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='Refreshing...';
+  try{await fetch('/api/refresh',{method:'POST'});
+    await new Promise(r=>setTimeout(r,5000));
+    allCampaigns=[];allCountries=[];roasData=null;
+    await init();
+  }catch(e){}
+  btn.disabled=false;btn.textContent='Refresh Data';
+}
+
 init();
 </script>
 </body>

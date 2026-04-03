@@ -101,22 +101,45 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
     }
 
     for token in tokens:
-        # 1. Daily metrics per app (for overview + trend chart)
+        # 1. Daily base metrics
         try:
             report = await fetch_report(
                 token, date_period,
                 dimensions="day,app",
-                metrics="installs,clicks,impressions,cost,revenue,ecpi_all,sessions,daus,waus,maus",
+                metrics="installs,clicks,impressions,cost,revenue,ecpi_all,sessions,daus",
             )
             if report.get("error"):
                 results["errors"].append({"source": f"daily:{token}", "error": report["error"]})
             else:
-                results["all_rows"].extend(report["rows"])
+                base_rows = report["rows"]
+
+                # 1b. Daily cohort metrics (separate call to avoid silent drop)
+                cohort_report = await fetch_report(
+                    token, date_period,
+                    dimensions="day,app",
+                    metrics="installs,cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+                )
+                cohort_map = {}
+                if not cohort_report.get("error"):
+                    for cr in cohort_report["rows"]:
+                        key = f"{cr.get('day','')}|{cr.get('app','')}"
+                        cohort_map[key] = cr
+
+                # Merge cohort into base rows
+                for row in base_rows:
+                    key = f"{row.get('day','')}|{row.get('app','')}"
+                    cm = cohort_map.get(key, {})
+                    row["revenue_total_d0"] = cm.get("revenue_total_d0", "0")
+                    row["revenue_total_d1"] = cm.get("revenue_total_d1", "0")
+                    row["revenue_total_d3"] = cm.get("revenue_total_d3", "0")
+                    row["revenue_total_d7"] = cm.get("revenue_total_d7", "0")
+
+                results["all_rows"].extend(base_rows)
         except Exception as e:
             print(f"  [FETCHER] daily:{token} EXCEPTION: {e}")
             results["errors"].append({"source": f"daily:{token}", "error": str(e)})
 
-        # 2. Country breakdown
+        # 2. Country breakdown (aggregate, no day — fast)
         try:
             report = await fetch_report(
                 token, date_period,
@@ -126,12 +149,29 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
             if report.get("error"):
                 results["errors"].append({"source": f"country:{token}", "error": report["error"]})
             else:
+                cohort_c = await fetch_report(
+                    token, date_period,
+                    dimensions="country,app",
+                    metrics="installs,cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+                )
+                cmap = {}
+                if not cohort_c.get("error"):
+                    for cr in cohort_c["rows"]:
+                        key = f"{cr.get('country','')}|{cr.get('app','')}"
+                        cmap[key] = cr
+                for row in report["rows"]:
+                    key = f"{row.get('country','')}|{row.get('app','')}"
+                    cm = cmap.get(key, {})
+                    row["revenue_total_d0"] = cm.get("revenue_total_d0", "0")
+                    row["revenue_total_d1"] = cm.get("revenue_total_d1", "0")
+                    row["revenue_total_d3"] = cm.get("revenue_total_d3", "0")
+                    row["revenue_total_d7"] = cm.get("revenue_total_d7", "0")
                 results["country_rows"].extend(report["rows"])
         except Exception as e:
             print(f"  [FETCHER] country:{token} EXCEPTION: {e}")
             results["errors"].append({"source": f"country:{token}", "error": str(e)})
 
-        # 3. Campaign breakdown
+        # 3. Campaign breakdown (aggregate, no day — fast)
         try:
             report = await fetch_report(
                 token, date_period,
@@ -141,6 +181,23 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
             if report.get("error"):
                 results["errors"].append({"source": f"campaign:{token}", "error": report["error"]})
             else:
+                cohort_camp = await fetch_report(
+                    token, date_period,
+                    dimensions="campaign,app",
+                    metrics="installs,cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+                )
+                ccmap = {}
+                if not cohort_camp.get("error"):
+                    for cr in cohort_camp["rows"]:
+                        key = f"{cr.get('campaign','')}|{cr.get('app','')}"
+                        ccmap[key] = cr
+                for row in report["rows"]:
+                    key = f"{row.get('campaign','')}|{row.get('app','')}"
+                    cm = ccmap.get(key, {})
+                    row["revenue_total_d0"] = cm.get("revenue_total_d0", "0")
+                    row["revenue_total_d1"] = cm.get("revenue_total_d1", "0")
+                    row["revenue_total_d3"] = cm.get("revenue_total_d3", "0")
+                    row["revenue_total_d7"] = cm.get("revenue_total_d7", "0")
                 results["campaign_rows"].extend(report["rows"])
         except Exception as e:
             print(f"  [FETCHER] campaign:{token} EXCEPTION: {e}")
