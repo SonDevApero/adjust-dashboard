@@ -37,6 +37,14 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .btn-refresh{background:linear-gradient(135deg,var(--blue),var(--purple))!important;border:none!important;color:#fff;font-weight:600;padding:7px 18px}
 .btn-refresh:disabled{opacity:.4;cursor:not-allowed}
 
+/* Spinner */
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Tab filter */
+.tab-filter{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;padding:10px 14px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px}
+.tab-filter select,.tab-filter input{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer}
+
 /* Content */
 .content{flex:1;padding:20px 24px;overflow-y:auto}
 .tab-panel{display:none;animation:fadeIn .25s ease}
@@ -134,7 +142,9 @@ tr.row-bad td{border-left:2px solid var(--red)}
   .topbar{padding:8px 10px;gap:6px;flex-wrap:wrap}
   .topbar select,.topbar button,.topbar input{padding:6px 8px;font-size:11px;min-width:0;flex-shrink:1}
   .topbar .spacer{display:none}
-  .btn-refresh{width:100%;margin-top:4px}
+  .btn-refresh{margin-top:4px}
+  .tab-filter{padding:8px 10px;gap:6px}
+  .tab-filter select,.tab-filter input{padding:5px 8px;font-size:10px;flex:1;min-width:0}
 
   /* Content */
   .content{padding:10px 8px;overflow-x:hidden}
@@ -253,25 +263,17 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
 <!-- Main -->
 <div class="main">
-  <div class="topbar">
-    <select id="dateRange">
-      <option value="today">Today</option>
-      <option value="yesterday">Yesterday</option>
-      <option value="7">Last 7 days</option>
-      <option value="14">Last 14 days</option>
-      <option value="30" selected>Last 30 days</option>
-      <option value="custom">Custom</option>
-    </select>
-    <input type="date" id="startDate" style="display:none">
-    <input type="date" id="endDate" style="display:none">
-    <div class="spacer"></div>
-    <button class="btn-refresh" id="refreshBtn" onclick="doRefresh()">Refresh Data</button>
-  </div>
-
   <div class="content">
 
     <!-- TAB 1: Overview -->
     <div class="tab-panel active" id="tab-overview">
+      <div class="tab-filter" data-tab="overview">
+        <select class="df-range" data-tab="overview"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
+        <input type="date" class="df-start" data-tab="overview" style="display:none">
+        <input type="date" class="df-end" data-tab="overview" style="display:none">
+        <button class="btn-refresh" onclick="loadOverview();loadTrend()">Apply</button>
+        <button class="btn-refresh" id="refreshBtn" onclick="doRefresh()" style="background:var(--card)!important;color:var(--muted);border:1px solid var(--border)!important">Refresh Cache</button>
+      </div>
       <div class="alert-bar" id="alertBar"></div>
       <div class="kpi-row" id="kpiRow" style="grid-template-columns:repeat(5,1fr)">
         <div class="kpi"><div class="kpi-label">Total Installs</div><div class="kpi-value" id="k_installs">-</div></div>
@@ -303,6 +305,12 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
     <!-- TAB 2: Optimal Zones -->
     <div class="tab-panel" id="tab-optimal">
+      <div class="tab-filter" data-tab="optimal">
+        <select class="df-range" data-tab="optimal"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
+        <input type="date" class="df-start" data-tab="optimal" style="display:none">
+        <input type="date" class="df-end" data-tab="optimal" style="display:none">
+        <button class="btn-refresh" onclick="loadCountries().then(()=>renderOptimalZones())">Apply</button>
+      </div>
       <div class="table-controls">
         <select id="ozSort"><option value="installs">Sort: Installs</option><option value="revenue">Sort: Revenue</option><option value="ecpi">Sort: eCPI</option></select>
       </div>
@@ -311,6 +319,12 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
     <!-- TAB 3: Campaigns -->
     <div class="tab-panel" id="tab-campaigns">
+      <div class="tab-filter" data-tab="campaigns">
+        <select class="df-range" data-tab="campaigns"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
+        <input type="date" class="df-start" data-tab="campaigns" style="display:none">
+        <input type="date" class="df-end" data-tab="campaigns" style="display:none">
+        <button class="btn-refresh" onclick="loadCampaigns()">Apply</button>
+      </div>
       <div class="table-controls">
         <input type="text" id="campSearch" placeholder="Search campaigns...">
         <button onclick="exportCSV()">Export CSV</button>
@@ -332,6 +346,12 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
     <!-- TAB 4: Countries -->
     <div class="tab-panel" id="tab-countries">
+      <div class="tab-filter" data-tab="countries">
+        <select class="df-range" data-tab="countries"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
+        <input type="date" class="df-start" data-tab="countries" style="display:none">
+        <input type="date" class="df-end" data-tab="countries" style="display:none">
+        <button class="btn-refresh" onclick="loadCountries()">Apply</button>
+      </div>
       <!-- Country filter -->
       <div class="table-controls" style="margin-bottom:16px">
         <select id="countrySelect" style="min-width:200px"><option value="">-- Ch&#x1ECD;n country &#x0111;&#x1EC3; xem chi ti&#x1EBF;t --</option></select>
@@ -388,6 +408,12 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
     <!-- TAB 5: ROAS -->
     <div class="tab-panel" id="tab-roas">
+      <div class="tab-filter" data-tab="roas">
+        <select class="df-range" data-tab="roas"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7" selected>Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option><option value="custom">Custom</option></select>
+        <input type="date" class="df-start" data-tab="roas" style="display:none">
+        <input type="date" class="df-end" data-tab="roas" style="display:none">
+        <button class="btn-refresh" onclick="loadRoas()">Apply</button>
+      </div>
       <div class="kpi-row" id="roasKpis" style="grid-template-columns:repeat(4,1fr)"></div>
       <div class="chart-row c2">
         <div class="chart-box"><h3>Daily ROAS Cohort Trend</h3><canvas id="roasTrend"></canvas></div>
@@ -404,11 +430,14 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
     <!-- TAB 6: Marketing Report Cohort -->
     <div class="tab-panel" id="tab-cohort">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="tab-filter" data-tab="cohort">
+        <select class="df-range" data-tab="cohort"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
+        <input type="date" class="df-start" data-tab="cohort" style="display:none">
+        <input type="date" class="df-end" data-tab="cohort" style="display:none">
         <select id="cohortCountry" style="background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px">
           <option value="">All Countries</option>
         </select>
-        <button onclick="loadCohort()" style="background:linear-gradient(135deg,var(--blue),var(--purple));border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Apply</button>
+        <button class="btn-refresh" onclick="loadCohort()">Apply</button>
         <div style="flex:1"></div>
         <button id="cohortCurrBtn" onclick="toggleCohortCurrency()" style="background:var(--card);color:var(--amber);border:1px solid var(--amber);padding:5px 12px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">USD</button>
         <button onclick="exportCohortCSV()" style="background:var(--card);color:var(--cyan);border:1px solid var(--cyan);padding:5px 12px;border-radius:4px;font-size:10px;cursor:pointer">Export Excel</button>
@@ -440,9 +469,20 @@ tr.row-bad td{border-left:2px solid var(--red)}
 <script>
 const COLORS=['#4c6ef5','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#14b8a6','#f97316','#64748b','#a855f7','#22d3ee'];
 const APP='APL389';
-function Q(){
+
+function getActiveTab(){
+  const el=document.querySelector('.nav-item.active');
+  return el?el.dataset.tab:'overview';
+}
+
+function Q(tabOverride){
   let q='?app='+APP;
-  const range=document.getElementById('dateRange').value;
+  const tab=tabOverride||getActiveTab();
+  const rangeEl=document.querySelector('.df-range[data-tab="'+tab+'"]');
+  const startEl=document.querySelector('.df-start[data-tab="'+tab+'"]');
+  const endEl=document.querySelector('.df-end[data-tab="'+tab+'"]');
+  if(!rangeEl)return q;
+  const range=rangeEl.value;
   const today=new Date();
   let s,e;
   if(range==='today'){
@@ -451,8 +491,8 @@ function Q(){
     const y=new Date(today);y.setDate(y.getDate()-1);
     s=e=y.toISOString().slice(0,10);
   }else if(range==='custom'){
-    s=document.getElementById('startDate').value;
-    e=document.getElementById('endDate').value;
+    s=startEl?startEl.value:'';
+    e=endEl?endEl.value:'';
   }else{
     const d=new Date(today);d.setDate(d.getDate()-parseInt(range));
     s=d.toISOString().slice(0,10);
@@ -499,27 +539,17 @@ document.querySelectorAll('.nav-item').forEach(el=>{
   });
 });
 
-document.getElementById('dateRange').addEventListener('change',e=>{
-  const c=e.target.value==='custom';
-  document.getElementById('startDate').style.display=c?'':'none';
-  document.getElementById('endDate').style.display=c?'':'none';
-  if(!c) reloadAll();
+// Handle custom date toggle per tab
+document.querySelectorAll('.df-range').forEach(sel=>{
+  sel.addEventListener('change',e=>{
+    const tab=e.target.dataset.tab;
+    const c=e.target.value==='custom';
+    const s=document.querySelector('.df-start[data-tab="'+tab+'"]');
+    const ed=document.querySelector('.df-end[data-tab="'+tab+'"]');
+    if(s)s.style.display=c?'':'none';
+    if(ed)ed.style.display=c?'':'none';
+  });
 });
-document.getElementById('startDate').addEventListener('change',reloadAll);
-document.getElementById('endDate').addEventListener('change',reloadAll);
-
-async function reloadAll(){
-  allCampaigns=[];allCountries=[];roasData=null;
-  await Promise.all([
-    loadOverview(),
-    loadTrend(),
-    loadCampaigns(),
-    loadCountries(),
-  ]);
-  renderOptimalZones();
-  loadRoas();
-  loadCohort();
-}
 
 // === INIT ===
 async function init(){
@@ -532,7 +562,7 @@ function roasCls(v){return v>=1.3?'good':v>=1?'warn':'bad';}
 // === TAB 1: OVERVIEW ===
 async function loadOverview(){
   try{
-    const r=await(await fetch('/api/overview'+Q())).json();
+    const r=await(await fetch('/api/overview'+Q('overview'))).json();
     const t=r.totals||{};
     document.getElementById('k_installs').textContent=fN(t.installs);
     document.getElementById('k_revenue').textContent=fM(t.revenue);
@@ -610,7 +640,7 @@ function generateOverviewAnalysis(t,daily){
 
 async function loadTrend(){
   try{
-    const r=await(await fetch('/api/trend'+Q())).json();
+    const r=await(await fetch('/api/trend'+Q('overview'))).json();
     allTrend=r.trend||{};
     await loadCountriesForOverview();
     await loadCampaignsForOverview();
@@ -619,7 +649,7 @@ async function loadTrend(){
 
 async function loadCountriesForOverview(){
   try{
-    const r=await(await fetch('/api/countries'+Q())).json();
+    const r=await(await fetch('/api/countries'+Q('overview'))).json();
     const top5=(r.countries||[]).slice(0,5);
     destroyChart('overviewCountry');
     if(top5.length){
@@ -635,7 +665,7 @@ async function loadCountriesForOverview(){
 
 async function loadCampaignsForOverview(){
   try{
-    const r=await(await fetch('/api/campaigns'+Q())).json();
+    const r=await(await fetch('/api/campaigns'+Q('overview'))).json();
     const camps=(r.campaigns||[]).slice(0,8);
     destroyChart('overviewApps');
     if(camps.length){
@@ -675,7 +705,7 @@ document.getElementById('ozSort').addEventListener('change',renderOptimalZones);
 // === TAB 3: CAMPAIGNS ===
 async function loadCampaigns(){
   try{
-    const r=await(await fetch('/api/campaigns'+Q())).json();
+    const r=await(await fetch('/api/campaigns'+Q('campaigns'))).json();
     allCampaigns=r.campaigns||[];
     campPage=1;
     renderCampaigns();
@@ -735,7 +765,7 @@ function exportCSV(){
 // === TAB 4: COUNTRIES ===
 async function loadCountries(){
   try{
-    const r=await(await fetch('/api/countries'+Q())).json();
+    const r=await(await fetch('/api/countries'+Q('countries'))).json();
     allCountries=r.countries||[];
     renderCountries();
     renderOptimalZones();
@@ -913,7 +943,7 @@ function generateCountryAnalysis(days, t, country){
 // === TAB 5: ROAS ===
 async function loadRoas(){
   try{
-    const r=await(await fetch('/api/roas'+Q())).json();
+    const r=await(await fetch('/api/roas'+Q('roas'))).json();
     if(r.error){document.getElementById('analysisRoas').textContent=r.error;return;}
     roasData=r;
     renderRoas();
@@ -998,9 +1028,10 @@ async function doRefresh(){
   const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='Refreshing...';
   try{await fetch('/api/refresh',{method:'POST'});
     await new Promise(r=>setTimeout(r,5000));
-    await reloadAll();
+    allCampaigns=[];allCountries=[];roasData=null;cohortData=null;
+    await init();
   }catch(e){}
-  btn.disabled=false;btn.textContent='Refresh Data';
+  btn.disabled=false;btn.textContent='Refresh Cache';
 }
 
 // === TAB 6: COHORT REPORT ===
@@ -1033,26 +1064,38 @@ function roasBg(v){
 }
 function roasFg(v){return v>=100?'#10b981':v>=80?'#f59e0b':v>=50?'#f59e0b':'#ef4444';}
 
+let cohortAbort=null;
 async function loadCohort(){
+  // Abort previous request if still running
+  if(cohortAbort)cohortAbort.abort();
+  cohortAbort=new AbortController();
+
   const el=document.getElementById('cohortLoading');
   el.style.display='block';
+  el.innerHTML='<div style="display:flex;align-items:center;gap:10px;justify-content:center"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div> Loading cohort data from Adjust API (may take 30-60s)...</div>';
+
   const country=document.getElementById('cohortCountry').value;
-  let url='/api/cohort_report'+Q();
+  let url='/api/cohort_report'+Q('cohort');
   if(country)url+='&country='+encodeURIComponent(country);
   try{
-    const r=await(await fetch(url)).json();
-    if(r.error){el.textContent='Error: '+r.error;return;}
+    const resp=await fetch(url,{signal:cohortAbort.signal});
+    const r=await resp.json();
+    if(r.error){el.innerHTML='<span style="color:var(--red)">Error: '+esc(r.error)+'</span>';return;}
     cohortData=r;
-    // Populate country dropdown if empty
+    // Populate country dropdown
     const sel=document.getElementById('cohortCountry');
     if(sel.options.length<=1&&r.by_country&&r.by_country.length){
       r.by_country.forEach(c=>{
         if(c.group){const o=document.createElement('option');o.value=c.group;o.textContent=c.group;sel.appendChild(o);}
       });
     }
+    el.style.display='none';
     renderCohort();
-  }catch(e){el.textContent='Error: '+e.message;}
-  el.style.display='none';
+  }catch(e){
+    if(e.name!=='AbortError'){
+      el.innerHTML='<span style="color:var(--red)">Error: '+esc(e.message)+'</span>';
+    }
+  }
 }
 
 function renderCohort(){

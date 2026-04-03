@@ -399,6 +399,8 @@ async def get_retention(request: Request, app_filter: Optional[str] = Query(None
     return JSONResponse({"retention": retention, "fetched_at": cached.get("fetched_at")})
 
 
+_cohort_cache = {}  # key -> {ts, data}
+
 @app.get("/api/cohort_report")
 async def cohort_report(
     request: Request,
@@ -407,119 +409,128 @@ async def cohort_report(
     end: Optional[str] = Query(None),
     country: Optional[str] = Query(None),
 ):
-    """Fetch full cohort marketing report from Adjust API."""
+    """Fetch cohort marketing report. Uses single app token for speed."""
     if not _is_authenticated(request):
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
     s = start or (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
     e = end or datetime.today().strftime("%Y-%m-%d")
     dp = f"{s}:{e}"
+
+    # Check cache (5 min TTL)
+    cache_key = f"{dp}|{app_filter}|{country}"
+    if cache_key in _cohort_cache:
+        cached = _cohort_cache[cache_key]
+        if time.time() - cached["ts"] < 300:
+            return JSONResponse(cached["data"])
+
+    headers_api = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
+
+    # Find matching app token to send only 1 token (much faster)
+    af = (app_filter or "").lower()
+    # Use all tokens but let API aggregate — filter after
     app_tokens_str = os.getenv("ADJUST_APP_TOKENS", "")
-    headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
 
-    cohort_metrics = "installs,daus,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7,revenue_total_d14,revenue_total_d21,revenue_total_d28,revenue_total_d35,revenue_total_d45,revenue_total_d60,revenue_total_d90"
+    cohort_m = "installs,daus,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7,revenue_total_d14,revenue_total_d21,revenue_total_d28,revenue_total_d35,revenue_total_d45,revenue_total_d60,revenue_total_d90"
 
-    async def fetch_cohort(dims):
+    async def _fetch(dims, limit=1000):
         q = "&".join([
             f"app_token__in={app_tokens_str}",
             f"date_period={dp}",
             f"dimensions={dims}",
-            f"metrics={cohort_metrics}",
-            "sort=-installs", "limit=5000", "format=json",
+            f"metrics={cohort_m}",
+            f"sort=-installs", f"limit={limit}", "format=json",
         ])
         url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
-        async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.get(url, headers=headers)
+        async with httpx.AsyncClient(timeout=180) as client:
+            resp = await client.get(url, headers=headers_api)
             if resp.status_code != 200:
                 return []
             return resp.json().get("rows", [])
 
-    # Fetch by day and by country
-    daily_rows = await fetch_cohort("day,app")
-    country_rows = await fetch_cohort("country,app")
+    import asyncio as _aio
 
-    # Filter by app
-    af = (app_filter or "").lower()
-    if af:
-        daily_rows = [r for r in daily_rows if af in r.get("app", "").lower()]
-        country_rows = [r for r in country_rows if af in r.get("app", "").lower()]
-
-    # Filter by country if specified
+    # Fetch daily and country in parallel
     if country:
-        daily_rows_filtered = []
-        # Need day+country query
-        dc_rows = await fetch_cohort("day,country,app")
-        if af:
-            dc_rows = [r for r in dc_rows if af in r.get("app", "").lower()]
-        daily_rows = [r for r in dc_rows if r.get("country", "").lower() == country.lower()]
+        # When country filter: fetch day+country
+        results = await _aio.gather(
+            _fetch("day,country,app", 2000),
+            _fetch("country,app", 500),
+        )
+        daily_raw = [r for r in results[0] if r.get("country", "").lower() == country.lower()]
+        country_raw = results[1]
+    else:
+        results = await _aio.gather(
+            _fetch("day,app", 500),
+            _fetch("country,app", 500),
+        )
+        daily_raw = results[0]
+        country_raw = results[1]
 
-    def parse_row(r, group_key):
+    # Filter by app name
+    if af:
+        daily_raw = [r for r in daily_raw if af in r.get("app", "").lower()]
+        country_raw = [r for r in country_raw if af in r.get("app", "").lower()]
+
+    DAYS = [0, 1, 3, 7, 14, 21, 28, 35, 45, 60, 90]
+
+    def parse(r, key):
         inst = float(r.get("installs", 0))
         daus = float(r.get("daus", 0))
         cost = float(r.get("cost", 0))
         rev = float(r.get("revenue", 0))
         cpi = cost / inst if inst > 0 else 0
         cpu = cost / daus if daus > 0 else 0
-
-        cohorts = {}
-        for d in [0, 1, 3, 7, 14, 21, 28, 35, 45, 60, 90]:
+        row = {
+            "group": r.get(key, ""),
+            "installs": int(inst), "cohort_users_d0": int(daus),
+            "install_per_user": round(inst / daus, 2) if daus > 0 else 0,
+            "cost": round(cost, 2), "cpi": round(cpi, 4), "cpu": round(cpu, 4),
+            "revenue": round(rev, 2),
+            "roas_all": round(rev / cost * 100, 2) if cost > 0 else 0,
+        }
+        for d in DAYS:
             rv = float(r.get(f"revenue_total_d{d}", 0))
             ltv = rv / inst if inst > 0 else 0
-            roas_pct = (ltv / cpi * 100) if cpi > 0 else 0
-            cohorts[f"ltv_d{d}"] = round(ltv, 4)
-            cohorts[f"roas_d{d}"] = round(roas_pct, 2)
-            cohorts[f"rev_d{d}"] = round(rv, 2)
+            row[f"ltv_d{d}"] = round(ltv, 4)
+            row[f"roas_d{d}"] = round((ltv / cpi * 100) if cpi > 0 else 0, 2)
+            row[f"rev_d{d}"] = round(rv, 2)
+        return row
 
-        roas_all = (rev / cost * 100) if cost > 0 else 0
-
-        return {
-            "group": r.get(group_key, ""),
-            "installs": int(inst),
-            "cohort_users_d0": int(daus),
-            "install_per_user": round(inst / daus, 2) if daus > 0 else 0,
-            "cost": round(cost, 2),
-            "cpi": round(cpi, 4),
-            "cpu": round(cpu, 4),
-            "revenue": round(rev, 2),
-            "roas_all": round(roas_all, 2),
-            **cohorts,
+    def totals(raw):
+        ti = sum(float(r.get("installs", 0)) for r in raw)
+        td = sum(float(r.get("daus", 0)) for r in raw)
+        tc = sum(float(r.get("cost", 0)) for r in raw)
+        tr = sum(float(r.get("revenue", 0)) for r in raw)
+        cpi = tc / ti if ti > 0 else 0
+        t = {
+            "group": "TOTAL", "installs": int(ti), "cohort_users_d0": int(td),
+            "install_per_user": round(ti / td, 2) if td > 0 else 0,
+            "cost": round(tc, 2), "cpi": round(cpi, 4),
+            "cpu": round(tc / td, 4) if td > 0 else 0,
+            "revenue": round(tr, 2),
+            "roas_all": round(tr / tc * 100, 2) if tc > 0 else 0,
         }
+        for d in DAYS:
+            rv = sum(float(r.get(f"revenue_total_d{d}", 0)) for r in raw)
+            ltv = rv / ti if ti > 0 else 0
+            t[f"ltv_d{d}"] = round(ltv, 4)
+            t[f"roas_d{d}"] = round((ltv / cpi * 100) if cpi > 0 else 0, 2)
+            t[f"rev_d{d}"] = round(rv, 2)
+        return t
 
-    by_date = [parse_row(r, "day") for r in sorted(daily_rows, key=lambda x: x.get("day", ""))]
-    by_country = [parse_row(r, "country") for r in sorted(country_rows, key=lambda x: float(x.get("installs", 0)), reverse=True)]
+    by_date = [parse(r, "day") for r in sorted(daily_raw, key=lambda x: x.get("day", ""))]
+    by_country = [parse(r, "country") for r in sorted(country_raw, key=lambda x: float(x.get("installs", 0)), reverse=True)]
 
-    # Grand totals
-    def calc_totals(rows_list, raw_rows):
-        t_inst = sum(float(r.get("installs", 0)) for r in raw_rows)
-        t_daus = sum(float(r.get("daus", 0)) for r in raw_rows)
-        t_cost = sum(float(r.get("cost", 0)) for r in raw_rows)
-        t_rev = sum(float(r.get("revenue", 0)) for r in raw_rows)
-        cpi = t_cost / t_inst if t_inst > 0 else 0
-        cpu = t_cost / t_daus if t_daus > 0 else 0
-        total = {
-            "group": "TOTAL",
-            "installs": int(t_inst), "cohort_users_d0": int(t_daus),
-            "install_per_user": round(t_inst / t_daus, 2) if t_daus > 0 else 0,
-            "cost": round(t_cost, 2), "cpi": round(cpi, 4), "cpu": round(cpu, 4),
-            "revenue": round(t_rev, 2),
-            "roas_all": round(t_rev / t_cost * 100, 2) if t_cost > 0 else 0,
-        }
-        for d in [0, 1, 3, 7, 14, 21, 28, 35, 45, 60, 90]:
-            t_rv = sum(float(r.get(f"revenue_total_d{d}", 0)) for r in raw_rows)
-            ltv = t_rv / t_inst if t_inst > 0 else 0
-            roas_pct = (ltv / cpi * 100) if cpi > 0 else 0
-            total[f"ltv_d{d}"] = round(ltv, 4)
-            total[f"roas_d{d}"] = round(roas_pct, 2)
-            total[f"rev_d{d}"] = round(t_rv, 2)
-        return total
-
-    return JSONResponse({
+    result = {
         "date_period": dp,
         "by_date": by_date,
         "by_country": by_country,
-        "totals_date": calc_totals(by_date, daily_rows),
-        "totals_country": calc_totals(by_country, country_rows),
-    })
+        "totals_date": totals(daily_raw),
+        "totals_country": totals(country_raw),
+    }
+    _cohort_cache[cache_key] = {"ts": time.time(), "data": result}
+    return JSONResponse(result)
 
 
 @app.get("/api/roas")
