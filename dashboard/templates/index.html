@@ -236,6 +236,10 @@ tr.row-bad td{border-left:2px solid var(--red)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       ROAS Analysis
     </div>
+    <div class="nav-item" data-tab="cohort">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+      MKT Report Cohort
+    </div>
   </nav>
   <div class="sidebar-bottom">
     <div style="font-size:11px;color:var(--purple);font-weight:600;margin-bottom:6px">Terasofts Dashboard</div>
@@ -398,6 +402,38 @@ tr.row-bad td{border-left:2px solid var(--red)}
       </div>
     </div>
 
+    <!-- TAB 6: Marketing Report Cohort -->
+    <div class="tab-panel" id="tab-cohort">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <select id="cohortCountry" style="background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px">
+          <option value="">All Countries</option>
+        </select>
+        <button onclick="loadCohort()" style="background:linear-gradient(135deg,var(--blue),var(--purple));border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Apply</button>
+        <div style="flex:1"></div>
+        <button id="cohortCurrBtn" onclick="toggleCohortCurrency()" style="background:var(--card);color:var(--amber);border:1px solid var(--amber);padding:5px 12px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">USD</button>
+        <button onclick="exportCohortCSV()" style="background:var(--card);color:var(--cyan);border:1px solid var(--cyan);padding:5px 12px;border-radius:4px;font-size:10px;cursor:pointer">Export Excel</button>
+      </div>
+      <div id="cohortLoading" style="display:none;text-align:center;padding:40px;color:var(--muted)">Loading cohort data...</div>
+
+      <!-- Table 1: ROAS All By Date -->
+      <div style="margin-bottom:10px;font-size:13px;font-weight:600;color:#fff">ROAS All By Date</div>
+      <div class="table-wrap" style="margin-bottom:20px">
+        <table id="cohortDateTable" style="min-width:1400px">
+          <thead id="cohortDateHead"></thead>
+          <tbody id="cohortDateBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Table 2: ROAS All By Country -->
+      <div style="margin-bottom:10px;font-size:13px;font-weight:600;color:#fff">ROAS All By Country</div>
+      <div class="table-wrap">
+        <table id="cohortCountryTable" style="min-width:1400px">
+          <thead id="cohortCountryHead"></thead>
+          <tbody id="cohortCountryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -459,6 +495,7 @@ document.querySelectorAll('.nav-item').forEach(el=>{
     if(tab==='countries'){loadCountries();}
     if(tab==='roas'){loadRoas();}
     if(tab==='optimal'){loadCountries().then(()=>renderOptimalZones());}
+    if(tab==='cohort'){loadCohort();}
   });
 });
 
@@ -479,10 +516,9 @@ async function reloadAll(){
     loadCampaigns(),
     loadCountries(),
   ]);
-  // Optimal Zones depends on countries
   renderOptimalZones();
-  // Reload ROAS if tab was visited
   loadRoas();
+  loadCohort();
 }
 
 // === INIT ===
@@ -965,6 +1001,133 @@ async function doRefresh(){
     await reloadAll();
   }catch(e){}
   btn.disabled=false;btn.textContent='Refresh Data';
+}
+
+// === TAB 6: COHORT REPORT ===
+let cohortData=null;
+let cohortCurrency='USD';
+const VND_RATE=25000;
+const COHORT_DAYS=[0,1,3,7,14,21,28,35,45,60,90];
+const COHORT_COLS=['No.','First Open Time','Cohort User D0','Install','Install/UserD0','Cost','CPI','CPU',
+  'LTV D0','LTV D3','LTV D7',
+  'ROAS D0','ROAS D1','ROAS D3','ROAS D7','ROAS D14','ROAS D21','ROAS D28','ROAS D35','ROAS D45','ROAS D60','ROAS D90','ROAS All'];
+
+function toggleCohortCurrency(){
+  cohortCurrency=cohortCurrency==='USD'?'VND':'USD';
+  document.getElementById('cohortCurrBtn').textContent=cohortCurrency;
+  if(cohortData)renderCohort();
+}
+
+function cohortFmtM(v){
+  if(cohortCurrency==='VND')v=v*VND_RATE;
+  if(Math.abs(v)>=1e6)return(v/1e6).toFixed(1)+'M';
+  if(Math.abs(v)>=1e3)return(v/1e3).toFixed(1)+'K';
+  return v.toFixed(2);
+}
+function cohortFmtPct(v){return v.toFixed(2)+'%';}
+function roasBg(v){
+  if(v>=100)return'rgba(16,185,129,.2)';
+  if(v>=80)return'rgba(245,158,11,.15)';
+  if(v>=50)return'rgba(245,158,11,.1)';
+  return'rgba(239,68,68,.15)';
+}
+function roasFg(v){return v>=100?'#10b981':v>=80?'#f59e0b':v>=50?'#f59e0b':'#ef4444';}
+
+async function loadCohort(){
+  const el=document.getElementById('cohortLoading');
+  el.style.display='block';
+  const country=document.getElementById('cohortCountry').value;
+  let url='/api/cohort_report'+Q();
+  if(country)url+='&country='+encodeURIComponent(country);
+  try{
+    const r=await(await fetch(url)).json();
+    if(r.error){el.textContent='Error: '+r.error;return;}
+    cohortData=r;
+    // Populate country dropdown if empty
+    const sel=document.getElementById('cohortCountry');
+    if(sel.options.length<=1&&r.by_country&&r.by_country.length){
+      r.by_country.forEach(c=>{
+        if(c.group){const o=document.createElement('option');o.value=c.group;o.textContent=c.group;sel.appendChild(o);}
+      });
+    }
+    renderCohort();
+  }catch(e){el.textContent='Error: '+e.message;}
+  el.style.display='none';
+}
+
+function renderCohort(){
+  const d=cohortData;
+  renderCohortTable('cohortDateHead','cohortDateBody',d.by_date||[],d.totals_date);
+  renderCohortTable('cohortCountryHead','cohortCountryBody',d.by_country||[],d.totals_country);
+}
+
+function renderCohortTable(headId,bodyId,rows,totals){
+  // Header
+  document.getElementById(headId).innerHTML='<tr>'+COHORT_COLS.map(c=>`<th style="position:sticky;top:0;background:var(--card);z-index:1;padding:6px 5px;font-size:9px;white-space:nowrap">${c}</th>`).join('')+'</tr>';
+
+  // Build rows
+  let html='';
+  rows.forEach((r,i)=>{
+    html+=cohortRow(i+1,r);
+  });
+  // Total row
+  if(totals){
+    html+='<tr style="background:rgba(124,58,237,.1);font-weight:700">'+cohortCells('',totals)+'</tr>';
+  }
+  document.getElementById(bodyId).innerHTML=html;
+}
+
+function cohortRow(num,r){
+  return '<tr>'+cohortCells(num,r)+'</tr>';
+}
+
+function cohortCells(num,r){
+  const cs=cohortCurrency==='USD'?'$':'d';
+  let cells=`<td style="color:var(--muted)">${num||''}</td>`;
+  cells+=`<td style="font-weight:600;white-space:nowrap">${esc(r.group||'TOTAL')}</td>`;
+  cells+=`<td>${fN(r.cohort_users_d0)}</td>`;
+  cells+=`<td>${fN(r.installs)}</td>`;
+  cells+=`<td>${r.install_per_user||'-'}</td>`;
+  cells+=`<td>${cs}${cohortFmtM(r.cost)}</td>`;
+  cells+=`<td>${cs}${cohortFmtM(r.cpi)}</td>`;
+  cells+=`<td>${cs}${cohortFmtM(r.cpu)}</td>`;
+  // LTV D0, D3, D7
+  cells+=`<td>${cs}${cohortFmtM(r.ltv_d0||0)}</td>`;
+  cells+=`<td>${cs}${cohortFmtM(r.ltv_d3||0)}</td>`;
+  cells+=`<td>${cs}${cohortFmtM(r.ltv_d7||0)}</td>`;
+  // ROAS columns
+  COHORT_DAYS.forEach(d=>{
+    const v=r['roas_d'+d]||0;
+    cells+=`<td style="background:${roasBg(v)};color:${roasFg(v)};font-weight:600;text-align:center">${cohortFmtPct(v)}</td>`;
+  });
+  // ROAS All
+  const ra=r.roas_all||0;
+  cells+=`<td style="background:${roasBg(ra)};color:${roasFg(ra)};font-weight:700;text-align:center">${cohortFmtPct(ra)}</td>`;
+  return cells;
+}
+
+function exportCohortCSV(){
+  if(!cohortData)return;
+  const rows=cohortData.by_date||[];
+  const header=COHORT_COLS.join(',')+'\n';
+  let csv=header;
+  rows.forEach((r,i)=>{
+    csv+=[i+1,r.group,r.cohort_users_d0,r.installs,r.install_per_user,r.cost,r.cpi,r.cpu,
+      r.ltv_d0||0,r.ltv_d3||0,r.ltv_d7||0,
+      ...COHORT_DAYS.map(d=>(r['roas_d'+d]||0)+'%'),
+      (r.roas_all||0)+'%'
+    ].join(',')+'\n';
+  });
+  if(cohortData.totals_date){
+    const t=cohortData.totals_date;
+    csv+=['','TOTAL',t.cohort_users_d0,t.installs,t.install_per_user,t.cost,t.cpi,t.cpu,
+      t.ltv_d0||0,t.ltv_d3||0,t.ltv_d7||0,
+      ...COHORT_DAYS.map(d=>(t['roas_d'+d]||0)+'%'),
+      (t.roas_all||0)+'%'
+    ].join(',')+'\n';
+  }
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cohort_report.csv';a.click();
 }
 
 init();
