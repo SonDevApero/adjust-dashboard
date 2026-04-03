@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>APL389 - Photo Video Maker Dashboard</title>
+<title>Terasofts Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0f1117;--sidebar:#12151f;--card:#1a1d2e;--border:#252836;--text:#e0e0e0;--muted:#6b7280;--purple:#7c3aed;--cyan:#06b6d4;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--blue:#4c6ef5}
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden;max-width:100vw}
 
 /* Sidebar */
 .sidebar{width:220px;min-height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
@@ -108,44 +108,94 @@ tr.row-bad td{border-left:2px solid var(--red)}
 .sparkline{display:inline-block;width:80px;height:24px;vertical-align:middle}
 
 /* Mobile menu toggle */
-.mobile-header{display:none;position:sticky;top:0;z-index:99;background:var(--sidebar);border-bottom:1px solid var(--border);padding:10px 16px;align-items:center;gap:10px}
+.mobile-header{display:none;position:sticky;top:0;z-index:99;background:var(--sidebar);border-bottom:1px solid var(--border);padding:10px 12px;align-items:center;gap:8px}
 .mobile-header .logo{width:28px;height:28px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
 .mobile-header h2{font-size:14px;font-weight:700;color:#fff;flex:1}
 .burger{background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
 .sidebar-overlay.open{display:block}
 
-/* Responsive */
+/* Responsive tablet */
 @media(max-width:1100px){
   .kpi-row{grid-template-columns:repeat(3,1fr)}
   .chart-row.c2,.chart-row.c3{grid-template-columns:1fr}
   .country-grid{grid-template-columns:1fr 1fr}
 }
+
+/* Responsive mobile */
 @media(max-width:768px){
+  /* Sidebar drawer */
   .sidebar{transform:translateX(-100%);transition:transform .25s ease;width:260px}
   .sidebar.open{transform:translateX(0)}
   .mobile-header{display:flex}
-  .main{margin-left:0}
-  .content{padding:14px 12px}
-  .topbar{padding:10px 12px;gap:6px}
-  .topbar select,.topbar button,.topbar input{padding:6px 10px;font-size:11px}
-  .kpi-row{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
-  .kpi{padding:12px 8px}
-  .kpi-value{font-size:18px}
-  .kpi-label{font-size:9px}
-  .chart-row{gap:12px;margin-bottom:14px}
-  .chart-box{padding:12px}
-  .chart-box canvas{max-height:220px}
-  .country-grid{grid-template-columns:1fr;gap:10px}
-  .table-wrap{border-radius:8px}
-  table{font-size:11px}
-  th{padding:8px 8px;font-size:9px}
-  td{padding:6px 8px}
-  .table-controls input{width:100%}
-  .table-controls{flex-direction:column;align-items:stretch}
+  .main{margin-left:0;width:100vw;max-width:100vw;overflow-x:hidden}
+
+  /* Topbar */
+  .topbar{padding:8px 10px;gap:6px;flex-wrap:wrap}
+  .topbar select,.topbar button,.topbar input{padding:6px 8px;font-size:11px;min-width:0;flex-shrink:1}
+  .topbar .spacer{display:none}
+  .btn-refresh{width:100%;margin-top:4px}
+
+  /* Content */
+  .content{padding:10px 8px;overflow-x:hidden}
+
+  /* KPI cards */
+  .kpi-row{grid-template-columns:repeat(2,1fr)!important;gap:6px;margin-bottom:10px}
+  .kpi{padding:10px 6px;border-radius:8px}
+  .kpi-value{font-size:16px}
+  .kpi-label{font-size:8px;letter-spacing:.3px}
+  .kpi-sub{font-size:8px}
+
+  /* Charts */
+  .chart-row{gap:10px;margin-bottom:12px}
+  .chart-row.c2,.chart-row.c3,.chart-row.c1{grid-template-columns:1fr}
+  .chart-box{padding:10px;border-radius:8px}
+  .chart-box h3{font-size:10px;margin-bottom:8px}
+  .chart-box canvas{max-height:200px}
+
+  /* Tables — horizontal scroll */
+  .table-wrap{border-radius:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:calc(100vw - 16px)}
+  table{font-size:10px;min-width:600px}
+  th{padding:6px 6px;font-size:8px;letter-spacing:.2px}
+  td{padding:5px 6px;font-size:10px}
+
+  /* Table controls */
+  .table-controls{flex-direction:column;align-items:stretch;gap:6px}
+  .table-controls input{width:100%;font-size:12px}
+
+  /* Country cards */
+  .country-grid{grid-template-columns:1fr;gap:8px}
+  .country-card{padding:12px}
+  .country-card h4{font-size:12px;flex-wrap:wrap}
+
+  /* Alerts */
   .alert-bar{gap:4px}
-  .alert-badge{font-size:9px;padding:2px 6px}
-  .pagination{flex-wrap:wrap}
+  .alert-badge{font-size:8px;padding:2px 5px}
+
+  /* Pagination */
+  .pagination{flex-wrap:wrap;gap:4px}
+  .pagination button{padding:4px 10px;font-size:10px}
+  .pagination span{font-size:10px}
+
+  /* Analysis boxes */
+  .chart-box[style*="border-left"]{padding:10px!important}
+  .chart-box[style*="border-left"] p{font-size:11px!important;line-height:1.6!important}
+
+  /* Country detail panel */
+  #countryDetail .kpi-row{grid-template-columns:repeat(2,1fr)!important}
+  #countryDetail .chart-row{grid-template-columns:1fr!important}
+
+  /* Badge */
+  .badge{font-size:8px;padding:2px 6px}
+}
+
+/* Small phone */
+@media(max-width:380px){
+  .kpi-row{grid-template-columns:1fr!important}
+  .mobile-header h2{font-size:12px}
+  .topbar select,.topbar button{font-size:10px;padding:5px 6px}
+  .kpi-value{font-size:14px}
+  table{min-width:500px}
 }
 </style>
 </head>
@@ -154,7 +204,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
 <!-- Mobile header -->
 <div class="mobile-header">
   <div class="logo">A</div>
-  <h2>APL389</h2>
+  <h2>Terasofts</h2>
   <button class="burger" onclick="toggleSidebar()">&#9776;</button>
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -163,7 +213,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="logo">A</div>
-    <h2>APL389<span>Photo Video Maker</span></h2>
+    <h2>Terasofts<span>Dashboard</span></h2>
   </div>
   <nav class="sidebar-nav" id="sidebarNav">
     <div class="nav-item active" data-tab="overview">
@@ -188,7 +238,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
     </div>
   </nav>
   <div class="sidebar-bottom">
-    <div style="font-size:11px;color:var(--purple);font-weight:600;margin-bottom:6px">APL389 - Photo Video Maker</div>
+    <div style="font-size:11px;color:var(--purple);font-weight:600;margin-bottom:6px">Terasofts Dashboard</div>
     <span class="sync">Last synced: <span id="syncTime">-</span></span>
     <a href="/logout" style="display:flex;align-items:center;gap:6px;margin-top:10px;color:var(--muted);font-size:12px;text-decoration:none;padding:6px 0;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--muted)'">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
@@ -405,10 +455,10 @@ document.querySelectorAll('.nav-item').forEach(el=>{
       document.getElementById('sidebarOverlay').classList.remove('open');
     }
     const tab=el.dataset.tab;
-    if(tab==='campaigns')loadCampaigns();
-    if(tab==='countries')loadCountries();
-    if(tab==='roas')loadRoas();
-    if(tab==='optimal'){if(!allCountries.length)loadCountries();else renderOptimalZones();}
+    if(tab==='campaigns'){loadCampaigns();}
+    if(tab==='countries'){loadCountries();}
+    if(tab==='roas'){loadRoas();}
+    if(tab==='optimal'){loadCountries().then(()=>renderOptimalZones());}
   });
 });
 
@@ -421,11 +471,18 @@ document.getElementById('dateRange').addEventListener('change',e=>{
 document.getElementById('startDate').addEventListener('change',reloadAll);
 document.getElementById('endDate').addEventListener('change',reloadAll);
 
-function reloadAll(){
+async function reloadAll(){
   allCampaigns=[];allCountries=[];roasData=null;
-  init();
-  loadCampaigns();
-  loadCountries();
+  await Promise.all([
+    loadOverview(),
+    loadTrend(),
+    loadCampaigns(),
+    loadCountries(),
+  ]);
+  // Optimal Zones depends on countries
+  renderOptimalZones();
+  // Reload ROAS if tab was visited
+  loadRoas();
 }
 
 // === INIT ===
@@ -507,7 +564,7 @@ function generateOverviewAnalysis(t,daily){
   const recentDays=daily.slice(-7);
   const avgRecent=recentDays.length?recentDays.reduce((s,d)=>s+d.roas_d7,0)/recentDays.length:0;
   el.innerHTML=`
-    <p><strong>T\u1ED5ng quan APL389 (30 ng\u00E0y):</strong> ${fN(t.installs)} l\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t v\u1EDBi chi ph\u00ED ${fM(t.cost)}, doanh thu ${fM(t.revenue)}.</p>
+    <p><strong>T\u1ED5ng quan (30 ng\u00E0y):</strong> ${fN(t.installs)} l\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t v\u1EDBi chi ph\u00ED ${fM(t.cost)}, doanh thu ${fM(t.revenue)}.</p>
     <p><strong>Cohort Revenue:</strong> Revenue D0 = ${fM(t.rev_d0)} \u2192 D7 = ${fM(t.rev_d7)}. T\u0103ng tr\u01B0\u1EDFng t\u1EEB D0\u2192D7: <span style="color:${roasGrowth>0?'var(--green)':'var(--red)'}">+${((t.rev_d7-t.rev_d0)/(t.rev_d0||1)*100).toFixed(1)}%</span></p>
     <p><strong>ROAS Cohort:</strong> D0 = <span style="color:${roasColor(t.roas_d0)}">${t.roas_d0}x</span> \u2192 D1 = <span style="color:${roasColor(t.roas_d1)}">${t.roas_d1}x</span> \u2192 D3 = <span style="color:${roasColor(t.roas_d3)}">${t.roas_d3}x</span> \u2192 D7 = <span style="color:${roasColor(t.roas_d7)}">${t.roas_d7}x</span></p>
     <p><strong>Nh\u1EADn x\u00E9t:</strong> ${t.roas_d7>=1.3?'ROAS D7 \u0111\u1EA1t m\u1EE9c t\u1ED1t (>1.3x), c\u00F3 th\u1EC3 scale budget.':t.roas_d7>=1?'ROAS D7 \u0111ang \u1EDF m\u1EE9c h\u00F2a v\u1ED1n. C\u1EA7n t\u1ED1i \u01B0u creative \u0111\u1EC3 n\u00E2ng l\u00EAn >1.3x tr\u01B0\u1EDBc khi scale.':'ROAS D7 d\u01B0\u1EDBi 1x \u2014 \u0111ang l\u1ED7. C\u1EA7n review l\u1EA1i to\u00E0n b\u1ED9 chi\u1EBFn l\u01B0\u1EE3c UA.'}</p>
@@ -682,7 +739,7 @@ async function selectCountry(country){
   document.getElementById('countrySelect').value=country;
   document.getElementById('countrySummaryWrap').style.display='none';
   document.getElementById('countryDetail').style.display='block';
-  document.getElementById('cdTitle').textContent='APL389 \u2014 '+country+' (30 ng\u00E0y)';
+  document.getElementById('cdTitle').textContent=country+' (30 ng\u00E0y)';
   document.getElementById('countryLoading').style.display='inline';
 
   try{
@@ -836,8 +893,8 @@ function renderRoas(){
   const bestC=bc.length?bc.reduce((a,b)=>a.roas>b.roas?a:b):{};
 
   document.getElementById('roasKpis').innerHTML=`
-    <div class="kpi"><div class="kpi-label">APL389 Ad Spend</div><div class="kpi-value">${fM(totalCost)}</div><div class="kpi-sub">7 days</div></div>
-    <div class="kpi"><div class="kpi-label">APL389 Revenue</div><div class="kpi-value">${fM(totalRev)}</div></div>
+    <div class="kpi"><div class="kpi-label">Ad Spend</div><div class="kpi-value">${fM(totalCost)}</div><div class="kpi-sub">7 days</div></div>
+    <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value">${fM(totalRev)}</div></div>
     <div class="kpi" style="border-color:${overallRoas>=1.3?'var(--green)':overallRoas>=1?'var(--amber)':'var(--red)'}"><div class="kpi-label">Overall ROAS</div><div class="kpi-value">${overallRoas}x</div></div>
     <div class="kpi" style="border-color:var(--green)"><div class="kpi-label">Best Country ROAS</div><div class="kpi-value">${bestC.roas||0}x</div><div class="kpi-sub">${bestC.country||'-'}</div></div>
   `;
@@ -846,7 +903,7 @@ function renderRoas(){
     destroyChart('roasTrend');
     charts.roasTrend=new Chart(document.getElementById('roasTrend'),{type:'line',data:{
       labels:daily.map(x=>x.date.slice(5)),
-      datasets:[{label:'APL389 ROAS',data:daily.map(x=>x.roas),borderColor:'#f59e0b',borderWidth:3,tension:.3,pointRadius:4,
+      datasets:[{label:'ROAS',data:daily.map(x=>x.roas),borderColor:'#f59e0b',borderWidth:3,tension:.3,pointRadius:4,
         pointBackgroundColor:daily.map(x=>x.roas>=1.3?'#10b981':x.roas>=1?'#f59e0b':'#ef4444'),fill:false}]
     },options:{responsive:true,plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
       scales:{x:{ticks:{color:'#6b7280'},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',callback:v=>v+'x'},grid:{color:'#1e2235'},suggestedMin:0,suggestedMax:2}}

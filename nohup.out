@@ -1339,3 +1339,7 @@ INFO:     113.22.139.192:0 - "GET /api/campaigns?app=APL389&start=2026-03-03&end
 INFO:     113.22.139.192:0 - "GET /api/countries?app=APL389&start=2026-03-04&end=2026-04-03 HTTP/1.1" 401 Unauthorized
 INFO:     113.22.139.192:0 - "GET /api/roas HTTP/1.1" 401 Unauthorized
 INFO:     113.22.139.192:0 - "GET /api/countries?app=APL389&start=2026-03-04&end=2026-04-03 HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:49836 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49844 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49850 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49857 - "GET /login HTTP/1.1" 200 OK
