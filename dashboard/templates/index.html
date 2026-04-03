@@ -36,6 +36,7 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .topbar .spacer{flex:1}
 .btn-refresh{background:linear-gradient(135deg,var(--blue),var(--purple))!important;border:none!important;color:#fff;font-weight:600;padding:7px 18px}
 .btn-refresh:disabled{opacity:.4;cursor:not-allowed}
+.btn-apply.applying{background:var(--card)!important;color:var(--amber);border:1px solid var(--amber)!important}
 
 /* Spinner */
 .spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
@@ -271,7 +272,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
         <select class="df-range" data-tab="overview"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
         <input type="date" class="df-start" data-tab="overview" style="display:none">
         <input type="date" class="df-end" data-tab="overview" style="display:none">
-        <button class="btn-refresh" onclick="loadOverview();loadTrend()">Apply</button>
+        <button class="btn-refresh btn-apply" onclick="applyFilter(this,async()=>{await loadOverview();await loadTrend()})">Apply</button>
         <button class="btn-refresh" id="refreshBtn" onclick="doRefresh()" style="background:var(--card)!important;color:var(--muted);border:1px solid var(--border)!important">Refresh Cache</button>
       </div>
       <div class="alert-bar" id="alertBar"></div>
@@ -309,7 +310,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
         <select class="df-range" data-tab="optimal"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
         <input type="date" class="df-start" data-tab="optimal" style="display:none">
         <input type="date" class="df-end" data-tab="optimal" style="display:none">
-        <button class="btn-refresh" onclick="loadCountries().then(()=>renderOptimalZones())">Apply</button>
+        <button class="btn-refresh btn-apply" onclick="applyFilter(this,async()=>{await loadCountries();renderOptimalZones()})">Apply</button>
       </div>
       <div class="table-controls">
         <select id="ozSort"><option value="installs">Sort: Installs</option><option value="revenue">Sort: Revenue</option><option value="ecpi">Sort: eCPI</option></select>
@@ -323,7 +324,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
         <select class="df-range" data-tab="campaigns"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
         <input type="date" class="df-start" data-tab="campaigns" style="display:none">
         <input type="date" class="df-end" data-tab="campaigns" style="display:none">
-        <button class="btn-refresh" onclick="loadCampaigns()">Apply</button>
+        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadCampaigns)">Apply</button>
       </div>
       <div class="table-controls">
         <input type="text" id="campSearch" placeholder="Search campaigns...">
@@ -350,7 +351,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
         <select class="df-range" data-tab="countries"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
         <input type="date" class="df-start" data-tab="countries" style="display:none">
         <input type="date" class="df-end" data-tab="countries" style="display:none">
-        <button class="btn-refresh" onclick="loadCountries()">Apply</button>
+        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadCountries)">Apply</button>
       </div>
       <!-- Country filter -->
       <div class="table-controls" style="margin-bottom:16px">
@@ -412,7 +413,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
         <select class="df-range" data-tab="roas"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7" selected>Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option><option value="custom">Custom</option></select>
         <input type="date" class="df-start" data-tab="roas" style="display:none">
         <input type="date" class="df-end" data-tab="roas" style="display:none">
-        <button class="btn-refresh" onclick="loadRoas()">Apply</button>
+        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadRoas)">Apply</button>
       </div>
       <div class="kpi-row" id="roasKpis" style="grid-template-columns:repeat(4,1fr)"></div>
       <div class="chart-row c2">
@@ -437,7 +438,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
         <select id="cohortCountry" style="background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px">
           <option value="">All Countries</option>
         </select>
-        <button class="btn-refresh" onclick="loadCohort()">Apply</button>
+        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadCohort)">Apply</button>
         <div style="flex:1"></div>
         <button id="cohortCurrBtn" onclick="toggleCohortCurrency()" style="background:var(--card);color:var(--amber);border:1px solid var(--amber);padding:5px 12px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">USD</button>
         <button onclick="exportCohortCSV()" style="background:var(--card);color:var(--cyan);border:1px solid var(--cyan);padding:5px 12px;border-radius:4px;font-size:10px;cursor:pointer">Export Excel</button>
@@ -1183,6 +1184,22 @@ function exportCohortCSV(){
   }
   const blob=new Blob([csv],{type:'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cohort_report.csv';a.click();
+}
+
+async function applyFilter(btn,callback){
+  if(btn.disabled)return;
+  const origText=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='Applying...';
+  btn.classList.add('applying');
+  try{
+    await callback();
+  }catch(e){
+    console.error('Apply error:',e);
+  }
+  btn.disabled=false;
+  btn.textContent=origText;
+  btn.classList.remove('applying');
 }
 
 init();
