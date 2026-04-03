@@ -31,7 +31,7 @@ def compute_overview(rows):
         installs = safe_float(row.get("installs"))
         clicks = safe_float(row.get("clicks"))
         impressions = safe_float(row.get("impressions"))
-        cost = safe_float(row.get("cost"))
+        cost = safe_float(row.get("network_cost", row.get("cost")))
         revenue = safe_float(row.get("revenue"))
         sessions = safe_float(row.get("sessions"))
         daus = safe_float(row.get("daus"))
@@ -126,7 +126,7 @@ def daily_by_app(rows):
         app_day[app][day]["revenue"] += safe_float(row.get("revenue"))
         app_day[app][day]["rev_d0"] += safe_float(row.get("revenue_total_d0"))
         app_day[app][day]["rev_d7"] += safe_float(row.get("revenue_total_d7"))
-        app_day[app][day]["cost"] += safe_float(row.get("cost"))
+        app_day[app][day]["cost"] += safe_float(row.get("network_cost", row.get("cost")))
 
     dates = sorted(all_dates)
     apps = {}
@@ -155,7 +155,7 @@ def app_comparison(rows):
             }
         a = app_agg[app]
         a["installs"] += safe_float(row.get("installs"))
-        a["cost"] += safe_float(row.get("cost"))
+        a["cost"] += safe_float(row.get("network_cost", row.get("cost")))
         a["revenue"] += safe_float(row.get("revenue"))
         a["sessions"] += safe_float(row.get("sessions"))
         a["daus"] += safe_float(row.get("daus"))
@@ -209,7 +209,7 @@ def country_breakdown(rows, limit=20):
         c = countries[cc]
         c["installs"] += safe_float(row.get("installs"))
         c["clicks"] += safe_float(row.get("clicks"))
-        c["cost"] += safe_float(row.get("cost"))
+        c["cost"] += safe_float(row.get("network_cost", row.get("cost")))
         c["revenue"] += safe_float(row.get("revenue"))
         c["rev_d0"] += safe_float(row.get("revenue_total_d0"))
         c["rev_d1"] += safe_float(row.get("revenue_total_d1"))
@@ -263,7 +263,7 @@ def campaign_breakdown(rows, limit=20):
         c["installs"] += safe_float(row.get("installs"))
         c["clicks"] += safe_float(row.get("clicks"))
         c["impressions"] += safe_float(row.get("impressions"))
-        c["cost"] += safe_float(row.get("cost"))
+        c["cost"] += safe_float(row.get("network_cost", row.get("cost")))
         c["revenue"] += safe_float(row.get("revenue"))
         c["rev_d0"] += safe_float(row.get("revenue_total_d0"))
         c["rev_d1"] += safe_float(row.get("revenue_total_d1"))

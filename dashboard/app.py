@@ -33,32 +33,18 @@ app = FastAPI(title="Adjust Analytics Dashboard")
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
 # Map app filter name to specific token for fast single-token queries
-APP_TOKEN_MAP = {}  # populated on first use
+# APL389 token — hardcoded for speed and accuracy
+APL389_TOKEN = "p9aujhwyqvi8"
 
 
 async def _resolve_app_token(app_filter):
-    """Find the single token for an app name. Caches result."""
+    """Return the single token for the app. Default: APL389."""
     if not app_filter:
-        return os.getenv("ADJUST_APP_TOKENS", "")
+        return APL389_TOKEN
     af = app_filter.lower()
-    if af in APP_TOKEN_MAP:
-        return APP_TOKEN_MAP[af]
-    # Test each token
-    headers = {"Authorization": f"Bearer {ADJUST_TOKEN}"}
-    for tk in ADJUST_APP_TOKENS:
-        q = f"app_token__in={tk}&date_period=2026-04-01:2026-04-03&dimensions=app&metrics=installs&limit=1&format=json"
-        url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
-        try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.get(url, headers=headers)
-                if resp.status_code == 200:
-                    rows = resp.json().get("rows", [])
-                    if rows and af in rows[0].get("app", "").lower():
-                        APP_TOKEN_MAP[af] = tk
-                        return tk
-        except Exception:
-            continue
-    # Fallback: all tokens
+    if "apl389" in af:
+        return APL389_TOKEN
+    # For other apps, use all tokens (rare case)
     return os.getenv("ADJUST_APP_TOKENS", "")
 
 # Auth config
@@ -272,8 +258,8 @@ async def get_countries(
             f"app_token__in={app_tokens_str}",
             f"date_period={dp}",
             "dimensions=country,app",
-            "metrics=installs,clicks,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
-            "sort=-installs", "limit=1000", "format=json",
+            "metrics=installs,clicks,network_cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+            "attribution_source=first", "utc_offset=%2B07:00", "sort=-installs", "limit=1000", "format=json",
         ])
         url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
         async with httpx.AsyncClient(timeout=120) as client:
@@ -312,9 +298,9 @@ async def country_daily(
         f"app_token__in={app_tokens_str}",
         f"date_period={dp}",
         "dimensions=day,country,app",
-        "metrics=installs,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
-        "limit=5000",
-        "format=json",
+        "metrics=installs,network_cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+        "attribution_source=first", "utc_offset=%2B07:00",
+        "limit=5000", "format=json",
     ])
     url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
 
@@ -331,7 +317,7 @@ async def country_daily(
         if app_filter and app_filter.lower() not in r.get("app", "").lower():
             continue
         inst = float(r.get("installs", 0))
-        cost = float(r.get("cost", 0))
+        cost = float(r.get("network_cost", r.get("cost", 0)))
         rev = float(r.get("revenue", 0))
         rd0 = float(r.get("revenue_total_d0", 0))
         rd1 = float(r.get("revenue_total_d1", 0))
@@ -397,8 +383,8 @@ async def get_campaigns(
             f"app_token__in={app_tokens_str}",
             f"date_period={dp}",
             "dimensions=campaign,app",
-            "metrics=installs,clicks,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
-            "sort=-installs", "limit=1000", "format=json",
+            "metrics=installs,clicks,network_cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+            "attribution_source=first", "utc_offset=%2B07:00", "sort=-installs", "limit=1000", "format=json",
         ])
         url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
         async with httpx.AsyncClient(timeout=120) as client:
@@ -459,7 +445,7 @@ async def cohort_report(
     af = (app_filter or "").lower()
     app_tokens_str = await _resolve_app_token(app_filter)
 
-    cohort_m = "installs,daus,cost,ecpi_all,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7,revenue_total_d14,revenue_total_d21,revenue_total_d28,roas_d0,roas_d1,roas_d3,roas_d7,roas_d14,roas_d21,roas_d28"
+    cohort_m = "installs,daus,network_cost,ecpi_all,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7,revenue_total_d14,revenue_total_d21,revenue_total_d28"
 
     async def _fetch(dims, limit=1000):
         q = "&".join([
@@ -467,99 +453,102 @@ async def cohort_report(
             f"date_period={dp}",
             f"dimensions={dims}",
             f"metrics={cohort_m}",
+            "attribution_source=first", "utc_offset=%2B07:00",
             f"sort=-installs", f"limit={limit}", "format=json",
         ])
         url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
         async with httpx.AsyncClient(timeout=180) as client:
             resp = await client.get(url, headers=headers_api)
             if resp.status_code != 200:
-                return []
-            return resp.json().get("rows", [])
+                return {"rows": [], "totals": {}}
+            data = resp.json()
+            return {"rows": data.get("rows", []), "totals": data.get("totals", {})}
 
     import asyncio as _aio
+    DAYS = [0, 1, 3, 7, 14, 21, 28]
 
     # Fetch daily and country in parallel
     if country:
-        # When country filter: fetch day+country
         results = await _aio.gather(
             _fetch("day,country,app", 2000),
             _fetch("country,app", 500),
         )
-        daily_raw = [r for r in results[0] if r.get("country", "").lower() == country.lower()]
-        country_raw = results[1]
+        daily_resp = results[0]
+        daily_resp["rows"] = [r for r in daily_resp["rows"]
+                              if r.get("country", "").lower() == country.lower()]
+        country_resp = results[1]
     else:
         results = await _aio.gather(
             _fetch("day,app", 500),
             _fetch("country,app", 500),
         )
-        daily_raw = results[0]
-        country_raw = results[1]
+        daily_resp = results[0]
+        country_resp = results[1]
 
     # Filter by app name
     if af:
-        daily_raw = [r for r in daily_raw if af in r.get("app", "").lower()]
-        country_raw = [r for r in country_raw if af in r.get("app", "").lower()]
+        daily_resp["rows"] = [r for r in daily_resp["rows"] if af in r.get("app", "").lower()]
+        country_resp["rows"] = [r for r in country_resp["rows"] if af in r.get("app", "").lower()]
 
-    ROAS_DAYS = [0, 1, 3, 7, 14, 21, 28]
-    LTV_DAYS = [0, 1, 3, 7, 14, 21, 28]
-
-    def parse(r, key):
+    def passthrough(r, key):
+        """Convert API row. ROAS = revenue_total_dX / network_cost * 100."""
         inst = float(r.get("installs", 0))
         daus = float(r.get("daus", 0))
-        cost = float(r.get("cost", 0))
+        ncost = float(r.get("network_cost", 0))  # Ad Spend (network)
         rev = float(r.get("revenue", 0))
         row = {
             "group": r.get(key, ""),
-            "installs": int(inst),
-            "cohort_users_d0": int(daus),
+            "installs": float(r.get("installs", 0)),
+            "cohort_users_d0": float(r.get("daus", 0)),
             "install_per_user": round(inst / daus, 2) if daus > 0 else 0,
-            "cost": round(cost, 2),
+            "cost": round(ncost, 2),  # Ad Spend (network)
             "ecpi": float(r.get("ecpi_all", 0)),
-            "cpu": round(cost / daus, 4) if daus > 0 else 0,
-            "revenue": round(rev, 2),
-            "roas_all": round(rev / cost * 100, 2) if cost > 0 else 0,
+            "cpu": round(ncost / daus, 4) if daus > 0 else 0,
+            "revenue": float(r.get("revenue", 0)),
+            "roas_all": round(rev / ncost * 100, 2) if ncost > 0 else 0,
         }
-        for d in LTV_DAYS:
+        for d in DAYS:
             rv = float(r.get(f"revenue_total_d{d}", 0))
             row[f"ltv_d{d}"] = round(rv / inst, 4) if inst > 0 else 0
-            row[f"rev_d{d}"] = round(rv, 2)
-        for d in ROAS_DAYS:
-            row[f"roas_d{d}"] = float(r.get(f"roas_d{d}", 0))
+            # ROAS Dx = Ad Revenue Cohort Dx / Ad Spend (network) * 100
+            row[f"roas_d{d}"] = round(rv / ncost * 100, 2) if ncost > 0 else 0
         return row
 
-    def totals(raw):
-        ti = sum(float(r.get("installs", 0)) for r in raw)
-        td = sum(float(r.get("daus", 0)) for r in raw)
-        tc = sum(float(r.get("cost", 0)) for r in raw)
-        tr = sum(float(r.get("revenue", 0)) for r in raw)
-        t = {
-            "group": "TOTAL", "installs": int(ti), "cohort_users_d0": int(td),
-            "install_per_user": round(ti / td, 2) if td > 0 else 0,
-            "cost": round(tc, 2),
-            "ecpi": round(tc / ti, 4) if ti > 0 else 0,
-            "cpu": round(tc / td, 4) if td > 0 else 0,
-            "revenue": round(tr, 2),
-            "roas_all": round(tr / tc * 100, 2) if tc > 0 else 0,
+    def totals_from_api(api_totals):
+        """Use totals directly from Adjust API response."""
+        t = api_totals
+        if not t:
+            return {"group": "TOTAL"}
+        inst = float(t.get("installs", 0))
+        daus = float(t.get("daus", 0))
+        ncost = float(t.get("network_cost", 0))
+        rev = float(t.get("revenue", 0))
+        row = {
+            "group": "TOTAL",
+            "installs": inst,
+            "cohort_users_d0": daus,
+            "install_per_user": round(inst / daus, 2) if daus > 0 else 0,
+            "cost": round(ncost, 2),
+            "ecpi": float(t.get("ecpi_all", 0)),
+            "cpu": round(ncost / daus, 4) if daus > 0 else 0,
+            "revenue": rev,
+            "roas_all": round(rev / ncost * 100, 2) if ncost > 0 else 0,
         }
-        for d in LTV_DAYS:
-            rv = sum(float(r.get(f"revenue_total_d{d}", 0)) for r in raw)
-            t[f"ltv_d{d}"] = round(rv / ti, 4) if ti > 0 else 0
-            t[f"rev_d{d}"] = round(rv, 2)
-        for d in ROAS_DAYS:
-            # Weighted average: sum(roas_d * installs) / sum(installs)
-            weighted = sum(float(r.get(f"roas_d{d}", 0)) * float(r.get("installs", 0)) for r in raw)
-            t[f"roas_d{d}"] = round(weighted / ti, 4) if ti > 0 else 0
-        return t
+        for d in DAYS:
+            rv = float(t.get(f"revenue_total_d{d}", 0))
+            row[f"ltv_d{d}"] = round(rv / inst, 4) if inst > 0 else 0
+            row[f"roas_d{d}"] = round(rv / ncost * 100, 2) if ncost > 0 else 0
+        return row
 
-    by_date = [parse(r, "day") for r in sorted(daily_raw, key=lambda x: x.get("day", ""))]
-    by_country = [parse(r, "country") for r in sorted(country_raw, key=lambda x: float(x.get("installs", 0)), reverse=True)]
+    by_date = [passthrough(r, "day") for r in sorted(daily_resp["rows"], key=lambda x: x.get("day", ""))]
+    by_country = [passthrough(r, "country") for r in sorted(country_resp["rows"], key=lambda x: float(x.get("installs", 0)), reverse=True)]
 
     result = {
         "date_period": dp,
         "by_date": by_date,
         "by_country": by_country,
-        "totals_date": totals(daily_raw),
-        "totals_country": totals(country_raw),
+        "totals_date": totals_from_api(daily_resp.get("totals", {})),
+        "totals_country": totals_from_api(country_resp.get("totals", {})),
     }
     _cohort_cache[cache_key] = {"ts": time.time(), "data": result}
     return JSONResponse(result)
@@ -589,8 +578,8 @@ async def roas_data(
         f"app_token__in={app_tokens_str}",
         f"date_period={dp}",
         "dimensions=day,app",
-        "metrics=installs,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
-        "sort=-installs", "limit=1000", "format=json",
+        "metrics=installs,network_cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+        "attribution_source=first", "utc_offset=%2B07:00", "sort=-installs", "limit=1000", "format=json",
     ])
     url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
     async with httpx.AsyncClient(timeout=120) as client:
@@ -604,8 +593,8 @@ async def roas_data(
         f"app_token__in={app_tokens_str}",
         f"date_period={dp}",
         "dimensions=country,app",
-        "metrics=installs,cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
-        "sort=-installs", "limit=1000", "format=json",
+        "metrics=installs,network_cost,revenue,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+        "attribution_source=first", "utc_offset=%2B07:00", "sort=-installs", "limit=1000", "format=json",
     ])
     url2 = f"https://dash.adjust.com/control-center/reports-service/report?{q2}"
     async with httpx.AsyncClient(timeout=120) as client:
@@ -621,7 +610,7 @@ async def roas_data(
     # Build daily ROAS
     daily = []
     for r in sorted(daily_rows, key=lambda x: x.get("day", "")):
-        cost = float(r.get("cost", 0))
+        cost = float(r.get("network_cost", r.get("cost", 0)))
         rd0 = float(r.get("revenue_total_d0", 0))
         rd1 = float(r.get("revenue_total_d1", 0))
         rd3 = float(r.get("revenue_total_d3", 0))
@@ -641,7 +630,7 @@ async def roas_data(
     # Build country ROAS
     by_country = []
     for r in sorted(country_rows, key=lambda x: float(x.get("installs", 0)), reverse=True)[:15]:
-        cost = float(r.get("cost", 0))
+        cost = float(r.get("network_cost", r.get("cost", 0)))
         rd0 = float(r.get("revenue_total_d0", 0))
         rd7 = float(r.get("revenue_total_d7", 0))
         rev = float(r.get("revenue", 0))
@@ -690,9 +679,9 @@ async def brazil_analysis(request: Request):
         f"app_token__in={app_tokens}",
         f"date_period={dp}",
         "dimensions=day,app,country",
-        "metrics=installs,clicks,cost,revenue,sessions,daus",
-        "limit=5000",
-        "format=json",
+        "metrics=installs,clicks,network_cost,revenue,sessions,daus",
+        "attribution_source=first", "utc_offset=%2B07:00",
+        "limit=5000", "format=json",
     ])
     url = f"https://dash.adjust.com/control-center/reports-service/report?{q}"
 
@@ -714,7 +703,7 @@ async def brazil_analysis(request: Request):
             }}
         t = apps[app_name]["totals"]
         t["installs"] += float(r.get("installs", 0))
-        t["cost"] += float(r.get("cost", 0))
+        t["cost"] += float(r.get("network_cost", r.get("cost", 0)))
         t["revenue"] += float(r.get("revenue", 0))
         t["sessions"] += float(r.get("sessions", 0))
         t["daus"] += float(r.get("daus", 0))
@@ -722,7 +711,7 @@ async def brazil_analysis(request: Request):
         if day:
             apps[app_name]["daily"][day] = {
                 "installs": float(r.get("installs", 0)),
-                "cost": float(r.get("cost", 0)),
+                "cost": float(r.get("network_cost", r.get("cost", 0))),
                 "revenue": float(r.get("revenue", 0)),
             }
 

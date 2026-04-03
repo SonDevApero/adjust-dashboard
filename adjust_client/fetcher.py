@@ -49,6 +49,8 @@ async def fetch_report(app_token, date_period, dimensions, metrics):
         "date_period": date_period,
         "dimensions": dimensions,
         "metrics": metrics,
+        "attribution_source": "first",
+        "utc_offset": "+07:00",
         "sort": "-installs",
         "limit": "1000",
         "format": "json",
@@ -78,9 +80,11 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
     Fetch data for all app tokens and cache results.
     Makes separate calls per dimension set to keep queries fast.
     """
-    tokens = app_tokens or ADJUST_APP_TOKENS
+    # Default: only APL389 token for speed. Dashboard is single-app.
+    APL389_TOKEN = "p9aujhwyqvi8"
+    tokens = app_tokens or [APL389_TOKEN]
     if not tokens:
-        return {"error": "No app tokens configured. Set ADJUST_APP_TOKENS in .env"}
+        return {"error": "No app tokens configured."}
 
     if start_date and end_date:
         date_period = f"{start_date}:{end_date}"
@@ -106,7 +110,7 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
             report = await fetch_report(
                 token, date_period,
                 dimensions="day,app",
-                metrics="installs,clicks,impressions,cost,revenue,ecpi_all,sessions,daus",
+                metrics="installs,clicks,impressions,network_cost,revenue,ecpi_all,sessions,daus",
             )
             if report.get("error"):
                 results["errors"].append({"source": f"daily:{token}", "error": report["error"]})
@@ -117,7 +121,7 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
                 cohort_report = await fetch_report(
                     token, date_period,
                     dimensions="day,app",
-                    metrics="installs,cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+                    metrics="installs,network_cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
                 )
                 cohort_map = {}
                 if not cohort_report.get("error"):
@@ -144,7 +148,7 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
             report = await fetch_report(
                 token, date_period,
                 dimensions="country,app",
-                metrics="installs,clicks,cost,revenue",
+                metrics="installs,clicks,network_cost,revenue",
             )
             if report.get("error"):
                 results["errors"].append({"source": f"country:{token}", "error": report["error"]})
@@ -152,7 +156,7 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
                 cohort_c = await fetch_report(
                     token, date_period,
                     dimensions="country,app",
-                    metrics="installs,cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+                    metrics="installs,network_cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
                 )
                 cmap = {}
                 if not cohort_c.get("error"):
@@ -176,7 +180,7 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
             report = await fetch_report(
                 token, date_period,
                 dimensions="campaign,app",
-                metrics="installs,clicks,cost,revenue",
+                metrics="installs,clicks,network_cost,revenue",
             )
             if report.get("error"):
                 results["errors"].append({"source": f"campaign:{token}", "error": report["error"]})
@@ -184,7 +188,7 @@ async def fetch_all_data(app_tokens=None, start_date=None, end_date=None):
                 cohort_camp = await fetch_report(
                     token, date_period,
                     dimensions="campaign,app",
-                    metrics="installs,cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
+                    metrics="installs,network_cost,revenue_total_d0,revenue_total_d1,revenue_total_d3,revenue_total_d7",
                 )
                 ccmap = {}
                 if not cohort_camp.get("error"):

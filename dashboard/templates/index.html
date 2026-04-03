@@ -1074,17 +1074,17 @@ function cohortFmtM(v){
   return v.toFixed(2);
 }
 function cohortFmtRoas(v){
-  // v is ratio from API (e.g. 1.4053). Display as ratio with 4 decimals
-  return v.toFixed(4);
+  // v is percentage (e.g. 188.91 = 188.91%)
+  return v.toFixed(2)+'%';
 }
 function roasBg(v){
-  // v is ratio from API (e.g. 2.35 = 235%)
-  if(v>=1)return'rgba(16,185,129,.2)';
-  if(v>=0.8)return'rgba(245,158,11,.15)';
-  if(v>=0.5)return'rgba(245,158,11,.1)';
+  // v is percentage (e.g. 188.91 = 188.91%)
+  if(v>=100)return'rgba(16,185,129,.2)';
+  if(v>=80)return'rgba(245,158,11,.15)';
+  if(v>=50)return'rgba(245,158,11,.1)';
   return'rgba(239,68,68,.15)';
 }
-function roasFg(v){return v>=1?'#10b981':v>=0.8?'#f59e0b':v>=0.5?'#f59e0b':'#ef4444';}
+function roasFg(v){return v>=100?'#10b981':v>=80?'#f59e0b':v>=50?'#f59e0b':'#ef4444';}
 
 let cohortAbort=null;
 async function loadCohort(){
