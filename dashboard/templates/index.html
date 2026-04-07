@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Terasofts Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0f1117;--sidebar:#12151f;--card:#1a1d2e;--border:#252836;--text:#e0e0e0;--muted:#6b7280;--purple:#7c3aed;--cyan:#06b6d4;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--blue:#4c6ef5}
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden;max-width:100vw}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden}
 
 /* Sidebar */
 .sidebar{width:220px;min-height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
@@ -17,115 +16,56 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .sidebar-brand h2{font-size:14px;font-weight:700;color:#fff;line-height:1.2}
 .sidebar-brand h2 span{font-size:11px;font-weight:400;color:var(--muted);display:block}
 .sidebar-nav{flex:1;padding:12px 0}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;border-left:3px solid transparent}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
-.nav-item.active{color:#fff;background:rgba(124,58,237,.1);border-left-color:var(--purple)}
-.nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:.6}
-.nav-item.active svg{opacity:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;color:#fff;font-size:13px;font-weight:500;background:rgba(124,58,237,.1);border-left:3px solid var(--purple)}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:1}
 .sidebar-bottom{padding:12px 16px;border-top:1px solid var(--border)}
-.sidebar-bottom select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:7px 10px;border-radius:6px;font-size:12px}
-.sidebar-bottom .sync{font-size:10px;color:var(--muted);margin-top:8px;display:block}
+.sidebar-bottom .sync{font-size:10px;color:var(--muted);display:block}
 
 /* Main */
 .main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
 
-/* Top bar */
-.topbar{padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sidebar)}
-.topbar select,.topbar button,.topbar input{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer}
-.topbar select:hover,.topbar button:hover{border-color:var(--purple)}
-.topbar .spacer{flex:1}
-.btn-refresh{background:linear-gradient(135deg,var(--blue),var(--purple))!important;border:none!important;color:#fff;font-weight:600;padding:7px 18px}
-.btn-refresh:disabled{opacity:.4;cursor:not-allowed}
-.btn-apply.applying{background:var(--card)!important;color:var(--amber);border:1px solid var(--amber)!important}
-
-/* Progress bar */
-.progress-wrap{position:sticky;top:0;z-index:50;background:var(--bg);padding:0;display:none}
-.progress-wrap.active{display:block}
-.progress-bar-bg{height:3px;background:var(--border);width:100%;overflow:hidden}
-.progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));width:0%;transition:width .3s ease}
-.progress-info{display:flex;align-items:center;justify-content:space-between;padding:4px 12px;font-size:10px;color:var(--muted)}
-.progress-info .task{color:var(--text);font-weight:500}
-.progress-info .pct{color:var(--purple);font-weight:700;font-size:11px}
-
-/* Spinner */
-.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Tab filter */
-.tab-filter{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;padding:10px 14px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px}
-.tab-filter select,.tab-filter input{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer}
+/* Filters */
+.filters{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sidebar)}
+.filters select,.filters input,.filters button{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+.filters select:hover,.filters button:hover{border-color:var(--purple)}
+.filters .spacer{flex:1}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--purple))!important;border:none!important;color:#fff;font-weight:600;padding:7px 18px}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-export{background:var(--card)!important;color:var(--cyan);border:1px solid var(--border)!important;font-weight:600}
+.btn-export:hover{border-color:var(--cyan)!important}
 
 /* Content */
 .content{flex:1;padding:20px 24px;overflow-y:auto}
-.tab-panel{display:none;animation:fadeIn .25s ease}
-.tab-panel.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-/* KPI */
-.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:border-color .15s}
-.kpi:hover{border-color:var(--blue)}
-.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px}
-.kpi-value{font-size:22px;font-weight:700;color:#fff}
-.kpi-sub{font-size:10px;color:#4b5563;margin-top:2px}
+/* Stats bar */
+.stats-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--muted)}
+.stat strong{color:#fff;font-size:14px;margin-left:6px}
 
-/* Charts */
-.chart-row{display:grid;gap:16px;margin-bottom:20px}
-.chart-row.c2{grid-template-columns:1fr 1fr}
-.chart-row.c3{grid-template-columns:2fr 1fr 1fr}
-.chart-row.c1{grid-template-columns:1fr}
-.chart-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
-.chart-box h3{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px}
-.chart-box canvas{width:100%!important;max-height:300px}
-
-/* Tables */
-.table-controls{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.table-controls input{background:var(--bg);color:var(--text);border:1px solid var(--border);padding:7px 12px;border-radius:6px;font-size:12px;width:240px}
-.table-controls button{background:var(--card);color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer}
-.table-controls button:hover{border-color:var(--cyan);color:var(--cyan)}
+/* Table */
 .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.3px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
 th:hover{color:var(--text)}
+th.sorted-asc::after{content:" \u25B2";color:var(--purple)}
+th.sorted-desc::after{content:" \u25BC";color:var(--purple)}
 td{padding:8px 12px;border-bottom:1px solid rgba(37,40,54,.5);white-space:nowrap}
 tr:hover td{background:rgba(255,255,255,.02)}
-tr.row-good td{border-left:2px solid var(--green)}
-tr.row-bad td{border-left:2px solid var(--red)}
-.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
-.badge-good{background:rgba(16,185,129,.15);color:var(--green)}
-.badge-bad{background:rgba(239,68,68,.15);color:var(--red)}
-.badge-warn{background:rgba(245,158,11,.15);color:var(--amber)}
-.pagination{display:flex;align-items:center;gap:8px;margin-top:10px;justify-content:center}
+.good{color:var(--green)}.bad{color:var(--red)}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:center}
 .pagination button{background:var(--card);color:var(--muted);border:1px solid var(--border);padding:5px 12px;border-radius:4px;font-size:11px;cursor:pointer}
 .pagination button.active,.pagination button:hover{border-color:var(--purple);color:var(--purple)}
+.pagination button:disabled{opacity:.3;cursor:not-allowed}
 .pagination span{font-size:11px;color:var(--muted)}
 
-/* Country cards */
-.country-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.country-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
-.country-card h4{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.country-card .formats{font-size:11px;color:var(--muted);margin-bottom:10px}
-.zone-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(37,40,54,.5)}
-.zone-row:last-child{border:none}
-.zone-label{color:var(--muted);width:90px}
-.zone-val{font-weight:600;color:var(--text)}
-.zone-best{color:var(--green);font-weight:700}
+/* Spinner */
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-state{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px 20px;color:var(--muted);font-size:13px}
 
-/* Skeleton */
-.skeleton{background:linear-gradient(90deg,var(--card) 25%,#222640 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:20px;margin-bottom:8px}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-/* Alerts */
-.alert-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-.alert-badge{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600}
-.alert-badge.spike{background:rgba(239,68,68,.12);color:var(--red)}
-.alert-badge.drop{background:rgba(245,158,11,.12);color:var(--amber)}
-
-/* Sparkline */
-.sparkline{display:inline-block;width:80px;height:24px;vertical-align:middle}
-
-/* Mobile menu toggle */
+/* Mobile */
 .mobile-header{display:none;position:sticky;top:0;z-index:99;background:var(--sidebar);border-bottom:1px solid var(--border);padding:10px 12px;align-items:center;gap:8px}
 .mobile-header .logo{width:28px;height:28px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
 .mobile-header h2{font-size:14px;font-weight:700;color:#fff;flex:1}
@@ -133,89 +73,19 @@ tr.row-bad td{border-left:2px solid var(--red)}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
 .sidebar-overlay.open{display:block}
 
-/* Responsive tablet */
-@media(max-width:1100px){
-  .kpi-row{grid-template-columns:repeat(3,1fr)}
-  .chart-row.c2,.chart-row.c3{grid-template-columns:1fr}
-  .country-grid{grid-template-columns:1fr 1fr}
-}
-
-/* Responsive mobile */
 @media(max-width:768px){
-  /* Sidebar drawer */
   .sidebar{transform:translateX(-100%);transition:transform .25s ease;width:260px}
   .sidebar.open{transform:translateX(0)}
   .mobile-header{display:flex}
-  .main{margin-left:0;width:100vw;max-width:100vw;overflow-x:hidden}
-
-  /* Topbar */
-  .topbar{padding:8px 10px;gap:6px;flex-wrap:wrap}
-  .topbar select,.topbar button,.topbar input{padding:6px 8px;font-size:11px;min-width:0;flex-shrink:1}
-  .topbar .spacer{display:none}
-  .btn-refresh{margin-top:4px}
-  .tab-filter{padding:8px 10px;gap:6px}
-  .tab-filter select,.tab-filter input{padding:5px 8px;font-size:10px;flex:1;min-width:0}
-
-  /* Content */
-  .content{padding:10px 8px;overflow-x:hidden}
-
-  /* KPI cards */
-  .kpi-row{grid-template-columns:repeat(2,1fr)!important;gap:6px;margin-bottom:10px}
-  .kpi{padding:10px 6px;border-radius:8px}
-  .kpi-value{font-size:16px}
-  .kpi-label{font-size:8px;letter-spacing:.3px}
-  .kpi-sub{font-size:8px}
-
-  /* Charts */
-  .chart-row{gap:10px;margin-bottom:12px}
-  .chart-row.c2,.chart-row.c3,.chart-row.c1{grid-template-columns:1fr}
-  .chart-box{padding:10px;border-radius:8px}
-  .chart-box h3{font-size:10px;margin-bottom:8px}
-  .chart-box canvas{max-height:200px}
-
-  /* Tables — horizontal scroll */
+  .main{margin-left:0;width:100vw}
+  .filters{padding:8px 10px;gap:6px;flex-wrap:wrap}
+  .filters select,.filters input,.filters button{padding:6px 8px;font-size:11px;flex-shrink:1}
+  .content{padding:10px 8px}
+  .stats-bar{flex-direction:column;gap:6px}
   .table-wrap{border-radius:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:calc(100vw - 16px)}
-  table{font-size:10px;min-width:600px}
-  th{padding:6px 6px;font-size:8px;letter-spacing:.2px}
+  table{font-size:10px;min-width:700px}
+  th{padding:6px;font-size:8px}
   td{padding:5px 6px;font-size:10px}
-
-  /* Table controls */
-  .table-controls{flex-direction:column;align-items:stretch;gap:6px}
-  .table-controls input{width:100%;font-size:12px}
-
-  /* Country cards */
-  .country-grid{grid-template-columns:1fr;gap:8px}
-  .country-card{padding:12px}
-  .country-card h4{font-size:12px;flex-wrap:wrap}
-
-  /* Alerts */
-  .alert-bar{gap:4px}
-  .alert-badge{font-size:8px;padding:2px 5px}
-
-  /* Pagination */
-  .pagination{flex-wrap:wrap;gap:4px}
-  .pagination button{padding:4px 10px;font-size:10px}
-  .pagination span{font-size:10px}
-
-  /* Analysis boxes */
-  .chart-box[style*="border-left"]{padding:10px!important}
-  .chart-box[style*="border-left"] p{font-size:11px!important;line-height:1.6!important}
-
-  /* Country detail panel */
-  #countryDetail .kpi-row{grid-template-columns:repeat(2,1fr)!important}
-  #countryDetail .chart-row{grid-template-columns:1fr!important}
-
-  /* Badge */
-  .badge{font-size:8px;padding:2px 6px}
-}
-
-/* Small phone */
-@media(max-width:380px){
-  .kpi-row{grid-template-columns:1fr!important}
-  .mobile-header h2{font-size:12px}
-  .topbar select,.topbar button{font-size:10px;padding:5px 6px}
-  .kpi-value{font-size:14px}
-  table{min-width:500px}
 }
 </style>
 </head>
@@ -224,7 +94,7 @@ tr.row-bad td{border-left:2px solid var(--red)}
 <!-- Mobile header -->
 <div class="mobile-header">
   <div class="logo">A</div>
-  <span style="font-size:12px;font-weight:700;color:var(--purple);flex:1">APL389</span>
+  <h2 style="color:var(--purple)">Data Gateway</h2>
   <button class="burger" onclick="toggleSidebar()">&#9776;</button>
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -235,40 +105,14 @@ tr.row-bad td{border-left:2px solid var(--red)}
     <div class="logo">A</div>
     <h2>Terasofts<span>Dashboard</span></h2>
   </div>
-  <nav class="sidebar-nav" id="sidebarNav">
-    <div class="nav-item active" data-tab="overview">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Overview
-    </div>
-    <div class="nav-item" data-tab="optimal">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      Optimal Zones
-    </div>
-    <div class="nav-item" data-tab="campaigns">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      Campaign Perf.
-    </div>
-    <div class="nav-item" data-tab="countries">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      Country Breakdown
-    </div>
-    <div class="nav-item" data-tab="roas">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      ROAS Analysis
-    </div>
-    <div class="nav-item" data-tab="cohort">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
-      MKT Report Cohort
-    </div>
-    <div class="nav-item" data-tab="business">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-      Business View
+  <nav class="sidebar-nav">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+      Data Gateway
     </div>
   </nav>
   <div class="sidebar-bottom">
-    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Product</div>
-    <div style="font-size:12px;color:var(--purple);font-weight:700;margin-bottom:8px">APL389 - Photo Video Maker</div>
-    <span class="sync">Last synced: <span id="syncTime">-</span></span>
+    <span class="sync">Last fetched: <span id="syncTime">-</span></span>
     <a href="/logout" style="display:flex;align-items:center;gap:6px;margin-top:10px;color:var(--muted);font-size:12px;text-decoration:none;padding:6px 0;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--muted)'">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
       Logout
@@ -278,1209 +122,276 @@ tr.row-bad td{border-left:2px solid var(--red)}
 
 <!-- Main -->
 <div class="main">
-  <div class="progress-wrap" id="progressWrap">
-    <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
-    <div class="progress-info">
-      <span class="task" id="progressTask">Loading...</span>
-      <span class="pct" id="progressPct">0%</span>
-    </div>
+  <div class="filters">
+    <label style="font-size:11px;color:var(--muted)">Date Range</label>
+    <select id="dateRange">
+      <option value="7">Last 7 days</option>
+      <option value="14">Last 14 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="custom">Custom</option>
+    </select>
+    <input type="date" id="startDate" style="display:none">
+    <input type="date" id="endDate" style="display:none">
+
+    <label style="font-size:11px;color:var(--muted);margin-left:8px">App</label>
+    <select id="appFilter">
+      <option value="all">All Apps</option>
+    </select>
+
+    <button class="btn-primary" id="fetchBtn" onclick="fetchData()">Fetch Data</button>
+    <div class="spacer"></div>
+    <button class="btn-export" id="exportBtn" onclick="exportCSV()" disabled>Export CSV</button>
   </div>
+
   <div class="content">
-
-    <!-- TAB 1: Overview -->
-    <div class="tab-panel active" id="tab-overview">
-      <div class="tab-filter" data-tab="overview">
-        <select class="df-range" data-tab="overview"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
-        <input type="date" class="df-start" data-tab="overview" style="display:none">
-        <input type="date" class="df-end" data-tab="overview" style="display:none">
-        <button class="btn-refresh btn-apply" onclick="applyFilter(this,async()=>{await loadOverview();await loadTrend()})">Apply</button>
-        <button class="btn-refresh" id="refreshBtn" onclick="doRefresh()" style="background:var(--card)!important;color:var(--muted);border:1px solid var(--border)!important">Refresh Cache</button>
-      </div>
-      <div class="alert-bar" id="alertBar"></div>
-      <div class="kpi-row" id="kpiRow" style="grid-template-columns:repeat(5,1fr)">
-        <div class="kpi"><div class="kpi-label">Total Installs</div><div class="kpi-value" id="k_installs">-</div></div>
-        <div class="kpi"><div class="kpi-label">Ad Spend</div><div class="kpi-value" id="k_cost">-</div><div class="kpi-sub">Total cost</div></div>
-        <div class="kpi"><div class="kpi-label">Revenue (Total)</div><div class="kpi-value" id="k_revenue">-</div><div class="kpi-sub">All-time rev from cohort</div></div>
-        <div class="kpi"><div class="kpi-label">Rev Cohort D7</div><div class="kpi-value" id="k_rev_d7">-</div><div class="kpi-sub">Revenue within 7 days</div></div>
-        <div class="kpi"><div class="kpi-label">eCPI</div><div class="kpi-value" id="k_ecpi">-</div><div class="kpi-sub">Cost / Install</div></div>
-      </div>
-      <!-- Cohort ROAS KPIs -->
-      <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-top:-8px">
-        <div class="kpi"><div class="kpi-label">Rev Cohort D0</div><div class="kpi-value" id="k_rev_d0">-</div><div class="kpi-sub">Same-day revenue</div></div>
-        <div class="kpi"><div class="kpi-label">ROAS Cohort D0</div><div class="kpi-value" id="k_roas_d0">-</div><div class="kpi-sub">RevD0 / Cost</div></div>
-        <div class="kpi"><div class="kpi-label">ROAS Cohort D1</div><div class="kpi-value" id="k_roas_d1">-</div><div class="kpi-sub">RevD1 / Cost</div></div>
-        <div class="kpi"><div class="kpi-label">ROAS Cohort D3</div><div class="kpi-value" id="k_roas_d3">-</div><div class="kpi-sub">RevD3 / Cost</div></div>
-        <div class="kpi"><div class="kpi-label">ROAS Cohort D7</div><div class="kpi-value" id="k_roas_d7">-</div><div class="kpi-sub">RevD7 / Cost</div></div>
-      </div>
-      <div class="chart-row c1"><div class="chart-box"><h3>Daily Installs &amp; Revenue</h3><canvas id="overviewTrend"></canvas></div></div>
-      <div class="chart-row c2">
-        <div class="chart-box"><h3>Daily ROAS Cohort D0 / D1 / D3 / D7</h3><canvas id="cohortTrend"></canvas></div>
-        <div class="chart-box"><h3>Revenue by Country (Top 5)</h3><canvas id="overviewCountry"></canvas></div>
-      </div>
-      <div class="chart-row c1"><div class="chart-box"><h3>Installs by Campaign (Top 8)</h3><canvas id="overviewApps"></canvas></div></div>
-      <!-- Analysis Section -->
-      <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--purple)">
-        <h3 style="color:var(--purple);font-size:13px;text-transform:none;letter-spacing:0">Phan tich &amp; Ket luan</h3>
-        <div id="analysisOverview" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
-      </div>
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <div class="stat">Total Rows<strong id="statRows">0</strong></div>
+      <div class="stat">Period<strong id="statPeriod">-</strong></div>
+      <div class="stat">Fetched At<strong id="statTime">-</strong></div>
     </div>
 
-    <!-- TAB 2: Optimal Zones -->
-    <div class="tab-panel" id="tab-optimal">
-      <div class="tab-filter" data-tab="optimal">
-        <select class="df-range" data-tab="optimal"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
-        <input type="date" class="df-start" data-tab="optimal" style="display:none">
-        <input type="date" class="df-end" data-tab="optimal" style="display:none">
-        <button class="btn-refresh btn-apply" onclick="applyFilter(this,async()=>{await loadCountries();renderOptimalZones()})">Apply</button>
-      </div>
-      <div class="table-controls">
-        <select id="ozSort"><option value="installs">Sort: Installs</option><option value="revenue">Sort: Revenue</option><option value="ecpi">Sort: eCPI</option></select>
-      </div>
-      <div class="country-grid" id="ozGrid"></div>
+    <div id="loadingState" class="loading-state" style="display:none">
+      <div class="spinner"></div>
+      <span>Fetching data from Adjust API...</span>
     </div>
 
-    <!-- TAB 3: Campaigns -->
-    <div class="tab-panel" id="tab-campaigns">
-      <div class="tab-filter" data-tab="campaigns">
-        <select class="df-range" data-tab="campaigns"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
-        <input type="date" class="df-start" data-tab="campaigns" style="display:none">
-        <input type="date" class="df-end" data-tab="campaigns" style="display:none">
-        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadCampaigns)">Apply</button>
-      </div>
-      <div class="table-controls">
-        <input type="text" id="campSearch" placeholder="Search campaigns...">
-        <button onclick="exportCSV()">Export CSV</button>
-      </div>
-      <div class="table-wrap"><table><thead><tr>
-        <th onclick="sortCamp('campaign')">Campaign</th>
-        <th onclick="sortCamp('installs')">Installs</th><th onclick="sortCamp('cost')">Cost</th>
-        <th onclick="sortCamp('revenue')">Revenue</th><th onclick="sortCamp('rev_d0')">Rev D0</th>
-        <th onclick="sortCamp('roas_d0')">ROAS D0</th><th onclick="sortCamp('roas_d1')">ROAS D1</th>
-        <th onclick="sortCamp('roas_d3')">ROAS D3</th><th onclick="sortCamp('roas_d7')">ROAS D7</th>
-        <th onclick="sortCamp('ecpi')">eCPI</th><th>Status</th>
-      </tr></thead><tbody id="campBody"></tbody></table></div>
-      <div class="pagination" id="campPagination"></div>
-      <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--cyan)">
-        <h3 style="color:var(--cyan);font-size:13px;text-transform:none;letter-spacing:0">Phan tich Campaign</h3>
-        <div id="analysisCampaign" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
-      </div>
+    <div id="emptyState" class="loading-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="opacity:.3"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+      <span>Select filters and click <strong>Fetch Data</strong> to load Adjust data</span>
     </div>
 
-    <!-- TAB 4: Countries -->
-    <div class="tab-panel" id="tab-countries">
-      <div class="tab-filter" data-tab="countries">
-        <select class="df-range" data-tab="countries"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
-        <input type="date" class="df-start" data-tab="countries" style="display:none">
-        <input type="date" class="df-end" data-tab="countries" style="display:none">
-        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadCountries)">Apply</button>
-      </div>
-      <!-- Country filter -->
-      <div class="table-controls" style="margin-bottom:16px">
-        <select id="countrySelect" style="min-width:200px"><option value="">-- Ch&#x1ECD;n country &#x0111;&#x1EC3; xem chi ti&#x1EBF;t --</option></select>
-        <span id="countryLoading" style="color:var(--muted);font-size:12px;display:none">&#x0110;ang t&#x1EA3;i d&#x1EEF; li&#x1EC7;u...</span>
-      </div>
-
-      <!-- Summary table (all countries) -->
-      <div class="table-wrap" id="countrySummaryWrap">
-        <table><thead><tr>
-          <th onclick="sortCountry('country')" style="cursor:pointer">Country</th>
-          <th onclick="sortCountry('installs')">Installs</th>
-          <th onclick="sortCountry('cost')">Cost</th>
-          <th onclick="sortCountry('revenue')">Revenue</th>
-          <th onclick="sortCountry('roas_d0')">ROAS D0</th>
-          <th onclick="sortCountry('roas_d7')">ROAS D7</th>
-          <th onclick="sortCountry('ecpi')">eCPI</th>
-          <th>Action</th>
-        </tr></thead><tbody id="countryBody"></tbody></table>
-      </div>
-
-      <!-- Detail panel (shows when country selected) -->
-      <div id="countryDetail" style="display:none">
-        <div style="display:flex;align-items:center;gap:12px;margin:16px 0 12px">
-          <h3 style="font-size:16px;color:#fff" id="cdTitle">-</h3>
-          <button onclick="closeCountryDetail()" style="background:var(--card);color:var(--muted);border:1px solid var(--border);padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer">&larr; Quay l&#x1EA1;i</button>
-        </div>
-        <!-- KPIs -->
-        <div class="kpi-row" id="cdKpis" style="grid-template-columns:repeat(5,1fr)"></div>
-        <!-- Charts -->
-        <div class="chart-row c2">
-          <div class="chart-box"><h3>Daily ROAS Cohort D0 / D1 / D3 / D7</h3><canvas id="cdRoasChart"></canvas></div>
-          <div class="chart-box"><h3>Daily LTV D0 / D3 / D7</h3><canvas id="cdLtvChart"></canvas></div>
-        </div>
-        <div class="chart-row c1">
-          <div class="chart-box"><h3>Daily Installs, Cost &amp; Revenue</h3><canvas id="cdDailyChart"></canvas></div>
-        </div>
-        <!-- Daily table -->
-        <div class="table-wrap" style="margin-top:12px"><table>
-          <thead><tr>
-            <th>Date</th><th>Installs</th><th>Cost</th><th>Revenue</th>
-            <th>Rev D0</th><th>Rev D7</th>
-            <th>ROAS D0</th><th>ROAS D1</th><th>ROAS D3</th><th>ROAS D7</th>
-            <th>LTV D0</th><th>LTV D3</th><th>LTV D7</th><th>eCPI</th>
-          </tr></thead>
-          <tbody id="cdTableBody"></tbody>
-        </table></div>
-        <!-- Analysis -->
-        <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--green)">
-          <h3 style="color:var(--green);font-size:13px;text-transform:none;letter-spacing:0">Ph&#x00E2;n t&#x00ED;ch &amp; &#x0110;&#x1EC1; xu&#x1EA5;t</h3>
-          <div id="cdAnalysis" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
-        </div>
-      </div>
+    <div class="table-wrap" id="tableWrap" style="display:none">
+      <table>
+        <thead>
+          <tr id="tableHead">
+            <th data-col="date">Date</th>
+            <th data-col="app">App</th>
+            <th data-col="country">Country</th>
+            <th data-col="installs">Installs</th>
+            <th data-col="cost">Cost</th>
+            <th data-col="revenue">Revenue</th>
+            <th data-col="sessions">Sessions</th>
+            <th data-col="ecpi">eCPI</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
     </div>
-
-    <!-- TAB 5: ROAS -->
-    <div class="tab-panel" id="tab-roas">
-      <div class="tab-filter" data-tab="roas">
-        <select class="df-range" data-tab="roas"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7" selected>Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option><option value="custom">Custom</option></select>
-        <input type="date" class="df-start" data-tab="roas" style="display:none">
-        <input type="date" class="df-end" data-tab="roas" style="display:none">
-        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadRoas)">Apply</button>
-      </div>
-      <div class="kpi-row" id="roasKpis" style="grid-template-columns:repeat(4,1fr)"></div>
-      <div class="chart-row c2">
-        <div class="chart-box"><h3>Daily ROAS Cohort Trend</h3><canvas id="roasTrend"></canvas></div>
-        <div class="chart-box"><h3>ROAS D7 by Country (Top 10)</h3><canvas id="roasCampaign"></canvas></div>
-      </div>
-      <div class="table-wrap"><table><thead><tr>
-        <th>Country</th><th>Cost</th><th>Rev D0</th><th>Rev D7</th><th>ROAS D0</th><th>ROAS D1</th><th>ROAS D3</th><th>ROAS D7</th><th>Status</th>
-      </tr></thead><tbody id="roasBody"></tbody></table></div>
-      <div class="chart-box" style="margin-top:16px;border-left:3px solid var(--amber)">
-        <h3 style="color:var(--amber);font-size:13px;text-transform:none;letter-spacing:0">K&#x1EBF;t lu&#x1EAD;n v&agrave; &#x0110;&#x1EC1; xu&#x1EA5;t</h3>
-        <div id="analysisRoas" style="font-size:13px;line-height:1.8;color:#c0c0c0;margin-top:8px"></div>
-      </div>
-    </div>
-
-    <!-- TAB 6: Marketing Report Cohort -->
-    <div class="tab-panel" id="tab-cohort">
-      <div class="tab-filter" data-tab="cohort">
-        <select class="df-range" data-tab="cohort"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
-        <input type="date" class="df-start" data-tab="cohort" style="display:none">
-        <input type="date" class="df-end" data-tab="cohort" style="display:none">
-        <select id="cohortCountry" style="background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px">
-          <option value="">All Countries</option>
-        </select>
-        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadCohort)">Apply</button>
-        <div style="flex:1"></div>
-        <button id="cohortCurrBtn" onclick="toggleCohortCurrency()" style="background:var(--card);color:var(--amber);border:1px solid var(--amber);padding:5px 12px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">USD</button>
-        <button onclick="exportCohortCSV()" style="background:var(--card);color:var(--cyan);border:1px solid var(--cyan);padding:5px 12px;border-radius:4px;font-size:10px;cursor:pointer">Export Excel</button>
-      </div>
-      <div id="cohortLoading" style="display:none;text-align:center;padding:40px;color:var(--muted)">Loading cohort data...</div>
-
-      <!-- Table 1: ROAS All By Date -->
-      <div style="margin-bottom:10px;font-size:13px;font-weight:600;color:#fff">ROAS All By Date</div>
-      <div class="table-wrap" style="margin-bottom:20px">
-        <table id="cohortDateTable" style="min-width:1400px">
-          <thead id="cohortDateHead"></thead>
-          <tbody id="cohortDateBody"></tbody>
-        </table>
-      </div>
-
-      <!-- Table 2: ROAS All By Country -->
-      <div style="margin-bottom:10px;font-size:13px;font-weight:600;color:#fff">ROAS All By Country</div>
-      <div class="table-wrap">
-        <table id="cohortCountryTable" style="min-width:1400px">
-          <thead id="cohortCountryHead"></thead>
-          <tbody id="cohortCountryBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TAB 7: Business View -->
-    <div class="tab-panel" id="tab-business">
-      <div class="tab-filter" data-tab="business">
-        <select class="df-range" data-tab="business"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="custom">Custom</option></select>
-        <input type="date" class="df-start" data-tab="business" style="display:none">
-        <input type="date" class="df-end" data-tab="business" style="display:none">
-        <button class="btn-refresh btn-apply" onclick="applyFilter(this,loadBusinessView)">Apply</button>
-      </div>
-
-      <!-- Alerts -->
-      <div id="bvAlerts" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
-
-      <!-- KPI Cards -->
-      <div class="kpi-row" id="bvKpis" style="grid-template-columns:repeat(3,1fr)"></div>
-
-      <!-- Charts -->
-      <div class="chart-row c2">
-        <div class="chart-box"><h3>Doanh Thu &amp; Chi Ph&#xED; theo ng&#xE0;y</h3><canvas id="bvRevCostChart"></canvas></div>
-        <div class="chart-box"><h3>ROAS D7 theo ng&#xE0;y (+ MA7)</h3><canvas id="bvRoasChart"></canvas></div>
-      </div>
-      <div class="chart-row c2">
-        <div class="chart-box"><h3>Top Qu&#x1ED1;c Gia theo Doanh Thu</h3><canvas id="bvCountryChart"></canvas></div>
-        <div class="chart-box"><h3>L&#x1EE3;i Nhu&#x1EAD;n theo ng&#xE0;y</h3><canvas id="bvProfitChart"></canvas></div>
-      </div>
-
-      <!-- Week Comparison -->
-      <div class="chart-box" style="margin-bottom:16px">
-        <h3>So s&#xE1;nh 7 ng&#xE0;y g&#x1EA7;n nh&#x1EA5;t vs 7 ng&#xE0;y tr&#x01B0;&#x1EDB;c</h3>
-        <div class="table-wrap" style="border:none"><table>
-          <thead><tr><th>Ch&#x1EC9; s&#x1ED1;</th><th>7 ng&#xE0;y g&#x1EA7;n nh&#x1EA5;t</th><th>7 ng&#xE0;y tr&#x01B0;&#x1EDB;c</th><th>Thay &#x0111;&#x1ED5;i</th></tr></thead>
-          <tbody id="bvWeekBody"></tbody>
-        </table></div>
-      </div>
-
-      <!-- AI Insights -->
-      <div class="chart-box" style="border-left:3px solid var(--purple);margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <h3 style="color:var(--purple);font-size:13px;text-transform:none;letter-spacing:0;margin:0">G&#x1EE3;i &#xFD; t&#x1EEB; AI (Claude)</h3>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span id="bvAiTime" style="font-size:10px;color:var(--muted)"></span>
-            <button onclick="loadAiInsights()" id="bvAiBtn" style="background:var(--purple);color:#fff;border:none;padding:5px 14px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">Ph&#xE2;n t&#xED;ch AI</button>
-          </div>
-        </div>
-        <div id="bvAiContent" style="font-size:13px;line-height:1.8;color:#c0c0c0;white-space:pre-wrap">
-          Nh&#x1EA5;n "Ph&#xE2;n t&#xED;ch AI" &#x0111;&#x1EC3; nh&#x1EAD;n g&#x1EE3;i &#xFD; kinh doanh t&#x1EEB; Claude AI.
-        </div>
-      </div>
-    </div>
-
+    <div class="pagination" id="pagination" style="display:none"></div>
   </div>
 </div>
 
 <script>
-const COLORS=['#4c6ef5','#7c3aed','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#14b8a6','#f97316','#64748b','#a855f7','#22d3ee'];
-const APP='APL389';
+const PAGE_SIZE = 50;
+let allRows = [];
+let sortedRows = [];
+let currentPage = 1;
+let sortCol = 'date';
+let sortDir = 'desc';
 
-// === PROGRESS TRACKER ===
-const progress={total:0,done:0,current:'',startTime:0};
-function progressStart(total,label){
-  progress.total=total;progress.done=0;progress.current=label||'';
-  progress.startTime=Date.now();
-  const wrap=document.getElementById('progressWrap');
-  wrap.classList.add('active');
-  progressUpdate(0,label);
-}
-function progressStep(label){
-  progress.done++;
-  progress.current=label||'';
-  const pct=Math.min(Math.round(progress.done/progress.total*100),100);
-  progressUpdate(pct,label);
-}
-function progressUpdate(pct,label){
-  document.getElementById('progressBar').style.width=pct+'%';
-  document.getElementById('progressPct').textContent=pct+'%';
-  const elapsed=((Date.now()-progress.startTime)/1000).toFixed(0);
-  const task=label||progress.current||'Loading';
-  document.getElementById('progressTask').textContent=task+' ('+elapsed+'s)';
-}
-function progressDone(){
-  const elapsed=((Date.now()-progress.startTime)/1000).toFixed(1);
-  document.getElementById('progressBar').style.width='100%';
-  document.getElementById('progressPct').textContent='100%';
-  document.getElementById('progressTask').textContent='Done in '+elapsed+'s';
-  setTimeout(()=>{document.getElementById('progressWrap').classList.remove('active');},2000);
-}  // appCode -> {overview, trend, campaigns, countries, cohort}
+// Date range toggle
+const dateRange = document.getElementById('dateRange');
+const startDate = document.getElementById('startDate');
+const endDate = document.getElementById('endDate');
+dateRange.addEventListener('change', () => {
+  const custom = dateRange.value === 'custom';
+  startDate.style.display = custom ? '' : 'none';
+  endDate.style.display = custom ? '' : 'none';
+});
 
-function getActiveTab(){
-  const el=document.querySelector('.nav-item.active');
-  return el?el.dataset.tab:'overview';
+// Load app list
+async function loadApps() {
+  try {
+    const resp = await fetch('/api/app_list');
+    if (resp.status === 401) { window.location.href = '/login'; return; }
+    const data = await resp.json();
+    const sel = document.getElementById('appFilter');
+    data.apps.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.code;
+      opt.textContent = a.name;
+      sel.appendChild(opt);
+    });
+  } catch (e) { console.error('Failed to load apps', e); }
 }
+loadApps();
 
-function Q(tabOverride){
-  let q='?app='+APP;
-  const tab=tabOverride||getActiveTab();
-  const rangeEl=document.querySelector('.df-range[data-tab="'+tab+'"]');
-  const startEl=document.querySelector('.df-start[data-tab="'+tab+'"]');
-  const endEl=document.querySelector('.df-end[data-tab="'+tab+'"]');
-  if(!rangeEl)return q;
-  const range=rangeEl.value;
-  const today=new Date();
-  let s,e;
-  if(range==='today'){
-    s=e=today.toISOString().slice(0,10);
-  }else if(range==='yesterday'){
-    const y=new Date(today);y.setDate(y.getDate()-1);
-    s=e=y.toISOString().slice(0,10);
-  }else if(range==='custom'){
-    s=startEl?startEl.value:'';
-    e=endEl?endEl.value:'';
-  }else{
-    const d=new Date(today);d.setDate(d.getDate()-parseInt(range));
-    s=d.toISOString().slice(0,10);
-    e=today.toISOString().slice(0,10);
+function getDateRange() {
+  const v = dateRange.value;
+  if (v === 'custom') {
+    return { start: startDate.value, end: endDate.value };
   }
-  if(s)q+='&start='+s;
-  if(e)q+='&end='+e;
-  return q;
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - parseInt(v));
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
 }
-let charts={};
-let allCampaigns=[],allCountries=[],allTrend={},roasData=null;
-let campSort={col:'revenue',asc:false},campPage=1,campPerPage=20;
-let countrySort={col:'installs',asc:false};
 
-async function fetchJSON(url,opts){
-  const resp=await fetch(url,opts||{});
-  if(resp.status===401){
-    window.location.href='/login';
-    throw new Error('Session expired');
+async function fetchData() {
+  const btn = document.getElementById('fetchBtn');
+  const loading = document.getElementById('loadingState');
+  const empty = document.getElementById('emptyState');
+
+  btn.disabled = true;
+  btn.textContent = 'Fetching...';
+  loading.style.display = '';
+  empty.style.display = 'none';
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('pagination').style.display = 'none';
+  document.getElementById('statsBar').style.display = 'none';
+
+  const { start, end } = getDateRange();
+  const app = document.getElementById('appFilter').value;
+  const params = new URLSearchParams({ start, end });
+  if (app !== 'all') params.set('app', app);
+
+  try {
+    const resp = await fetch(`/api/data_gateway?${params}`);
+    if (resp.status === 401) { window.location.href = '/login'; return; }
+    const data = await resp.json();
+    if (data.error) { alert(data.error); return; }
+
+    allRows = data.rows || [];
+    sortCol = 'date';
+    sortDir = 'desc';
+    sortAndRender();
+
+    // Stats
+    document.getElementById('statRows').textContent = data.total_rows.toLocaleString();
+    document.getElementById('statPeriod').textContent = data.date_period.replace(':', ' to ');
+    const fetched = new Date(data.fetched_at);
+    document.getElementById('statTime').textContent = fetched.toLocaleString();
+    document.getElementById('syncTime').textContent = fetched.toLocaleTimeString();
+    document.getElementById('statsBar').style.display = '';
+    document.getElementById('exportBtn').disabled = allRows.length === 0;
+  } catch (e) {
+    alert('Error fetching data: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Fetch Data';
+    loading.style.display = 'none';
   }
-  const ct=resp.headers.get('content-type')||'';
-  if(!ct.includes('json')){
-    const txt=await resp.text();
-    if(txt.startsWith('<!DOCTYPE')||txt.startsWith('<html')){
-      window.location.href='/login';
-      throw new Error('Session expired');
+}
+
+function sortAndRender() {
+  sortedRows = [...allRows];
+  sortedRows.sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'number') return sortDir === 'asc' ? va - vb : vb - va;
+    va = String(va || ''); vb = String(vb || '');
+    return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  currentPage = 1;
+  renderTable();
+  updateSortHeaders();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = sortedRows.slice(start, start + PAGE_SIZE);
+
+  if (sortedRows.length === 0) {
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('tableWrap').style.display = 'none';
+    document.getElementById('pagination').style.display = 'none';
+    return;
+  }
+
+  tbody.innerHTML = pageRows.map(r => `<tr>
+    <td>${esc(r.date)}</td>
+    <td>${esc(r.app)}</td>
+    <td>${esc(r.country)}</td>
+    <td>${r.installs.toLocaleString()}</td>
+    <td>$${r.cost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td class="${r.revenue > r.cost ? 'good' : ''}">$${r.revenue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td>${r.sessions.toLocaleString()}</td>
+    <td>$${r.ecpi.toFixed(4)}</td>
+  </tr>`).join('');
+
+  document.getElementById('tableWrap').style.display = '';
+  renderPagination();
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(sortedRows.length / PAGE_SIZE);
+  const pag = document.getElementById('pagination');
+  if (totalPages <= 1) { pag.style.display = 'none'; return; }
+
+  let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})">&laquo; Prev</button>`;
+  html += `<span>Page ${currentPage} of ${totalPages}</span>`;
+  html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">Next &raquo;</button>`;
+  pag.innerHTML = html;
+  pag.style.display = '';
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+  document.getElementById('tableWrap').scrollIntoView({behavior:'smooth'});
+}
+
+function updateSortHeaders() {
+  document.querySelectorAll('#tableHead th').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (th.dataset.col === sortCol) {
+      th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
     }
-    throw new Error('Server error');
-  }
-  return await resp.json();
+  });
 }
-function fN(n){if(n==null||isNaN(n))return'-';if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+'M';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString();}
-function fM(n){if(n==null||isNaN(n))return'-';return'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
-function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-// === MOBILE SIDEBAR ===
-function toggleSidebar(){
+// Column sort click
+document.getElementById('tableHead').addEventListener('click', e => {
+  const th = e.target.closest('th');
+  if (!th || !th.dataset.col) return;
+  if (sortCol === th.dataset.col) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortCol = th.dataset.col;
+    sortDir = ['installs','cost','revenue','sessions','ecpi'].includes(sortCol) ? 'desc' : 'asc';
+  }
+  sortAndRender();
+});
+
+function exportCSV() {
+  if (!sortedRows.length) return;
+  const headers = ['Date','App','Country','Installs','Cost','Revenue','Sessions','eCPI'];
+  const lines = [headers.join(',')];
+  sortedRows.forEach(r => {
+    lines.push([
+      r.date,
+      `"${(r.app||'').replace(/"/g,'""')}"`,
+      r.country,
+      r.installs,
+      r.cost,
+      r.revenue,
+      r.sessions,
+      r.ecpi,
+    ].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `adjust_data_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+// Mobile sidebar toggle
+function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOverlay').classList.toggle('open');
 }
-
-// === NAV ===
-document.querySelectorAll('.nav-item').forEach(el=>{
-  el.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-    el.classList.add('active');
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById('tab-'+el.dataset.tab).classList.add('active');
-    // Close sidebar on mobile
-    if(window.innerWidth<=768){
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('sidebarOverlay').classList.remove('open');
-    }
-    const tab=el.dataset.tab;
-    if(tab==='campaigns'){loadCampaigns();}
-    if(tab==='countries'){loadCountries();}
-    if(tab==='roas'){loadRoas();}
-    if(tab==='optimal'){loadCountries().then(()=>renderOptimalZones());}
-    if(tab==='cohort'){loadCohort();}
-    if(tab==='business'){loadBusinessView();}
-  });
-});
-
-// Handle custom date toggle per tab
-document.querySelectorAll('.df-range').forEach(sel=>{
-  sel.addEventListener('change',e=>{
-    const tab=e.target.dataset.tab;
-    const c=e.target.value==='custom';
-    const s=document.querySelector('.df-start[data-tab="'+tab+'"]');
-    const ed=document.querySelector('.df-end[data-tab="'+tab+'"]');
-    if(s)s.style.display=c?'':'none';
-    if(ed)ed.style.display=c?'':'none';
-  });
-});
-
-// === INIT ===
-// === TAB 7: BUSINESS VIEW ===
-let bvData=null;
-function fVN(n){if(n==null||isNaN(n))return'-';return n.toLocaleString('vi-VN');}
-
-async function loadBusinessView(){
-  progressStart(2,'Loading Business View...');
-  try{
-    const r=await fetchJSON('/api/business_view'+Q('business'));
-    if(r.error){console.error(r.error);return;}
-    bvData=r;
-    progressStep('Rendering...');
-    renderBusinessView();
-  }catch(e){console.error('bv',e);}
-  progressDone();
-}
-
-function renderBusinessView(){
-  const d=bvData;
-  const k=d.kpis;
-
-  // Alerts
-  const alertsEl=document.getElementById('bvAlerts');
-  alertsEl.innerHTML=(d.alerts||[]).map(a=>{
-    const cls=a.type==='danger'?'spike':a.type==='warning'?'drop':'';
-    const icon=a.type==='danger'?'\uD83D\uDD34':a.type==='warning'?'\uD83D\uDFE1':'\uD83D\uDFE2';
-    return `<span class="alert-badge ${cls}" style="font-size:11px;padding:4px 10px">${icon} ${esc(a.msg)}</span>`;
-  }).join('');
-
-  // KPIs
-  function kpiCard(label,cur,prev,change,prefix,suffix,invert){
-    const up=invert?change<0:change>0;
-    const color=up?'var(--green)':'var(--red)';
-    const arrow=change>0?'\u2191':change<0?'\u2193':'';
-    const fCur=prefix+(typeof cur==='number'&&cur>=1000?fVN(Math.round(cur)):cur)+suffix;
-    const fPrev=prefix+(typeof prev==='number'&&prev>=1000?fVN(Math.round(prev)):prev)+suffix;
-    return `<div class="kpi">
-      <div class="kpi-label">${label}</div>
-      <div class="kpi-value">${fCur}</div>
-      <div class="kpi-sub" style="color:${color};font-weight:600">${arrow} ${change>0?'+':''}${change}% <span style="color:var(--muted);font-weight:400">vs ${fPrev}</span></div>
-    </div>`;
-  }
-  document.getElementById('bvKpis').innerHTML=
-    kpiCard('T\u1ED5ng Doanh Thu',k.revenue.current,k.revenue.previous,k.revenue.change,'$','',false)+
-    kpiCard('T\u1ED5ng Chi Ph\u00ED QC',k.cost.current,k.cost.previous,k.cost.change,'$','',true)+
-    kpiCard('L\u1EE3i Nhu\u1EADn R\u00F2ng',k.profit.current,k.profit.previous,k.profit.change,'$','',false)+
-    kpiCard('ROAS Trung B\u00ECnh',k.roas.current,k.roas.previous,k.roas.change,'','%',false)+
-    kpiCard('T\u1ED5ng C\u00E0i \u0110\u1EB7t',k.installs.current,k.installs.previous,k.installs.change,'','',false)+
-    kpiCard('eCPI',k.ecpi.current,k.ecpi.previous,k.ecpi.change,'$','',true);
-
-  const daily=d.daily||[];
-  const dates=daily.map(x=>x.date.slice(5));
-
-  // Revenue vs Cost chart
-  destroyChart('bvRevCostChart');
-  charts.bvRevCostChart=new Chart(document.getElementById('bvRevCostChart'),{type:'line',data:{
-    labels:dates,
-    datasets:[
-      {label:'Doanh Thu',data:daily.map(x=>x.revenue),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
-      {label:'Chi Ph\u00ED',data:daily.map(x=>x.cost),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
-    ]
-  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}}}
-  }});
-
-  // ROAS chart with threshold + MA7
-  destroyChart('bvRoasChart');
-  charts.bvRoasChart=new Chart(document.getElementById('bvRoasChart'),{type:'line',data:{
-    labels:dates,
-    datasets:[
-      {label:'ROAS D7',data:daily.map(x=>x.roas_d7),borderColor:'#4c6ef5',borderWidth:2,tension:.3,pointRadius:1,fill:false,
-        segment:{borderColor:ctx=>{const v=ctx.p0.parsed.y;return v>=100?'#10b981':'#ef4444';}}},
-      {label:'MA7',data:daily.map(x=>x.roas_ma7),borderColor:'#f59e0b',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:.3},
-      {label:'Ng\u01B0\u1EE1ng 100%',data:daily.map(()=>100),borderColor:'rgba(255,255,255,.2)',borderDash:[2,4],borderWidth:1,pointRadius:0,fill:false},
-    ]
-  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'%'},grid:{color:'#1e2235'}}}
-  }});
-
-  // Country chart
-  const countries=d.countries||[];
-  destroyChart('bvCountryChart');
-  charts.bvCountryChart=new Chart(document.getElementById('bvCountryChart'),{type:'bar',data:{
-    labels:countries.slice(0,8).map(c=>c.country),
-    datasets:[
-      {label:'Doanh Thu',data:countries.slice(0,8).map(c=>c.revenue),backgroundColor:'#10b98188',borderColor:'#10b981',borderWidth:1,borderRadius:3},
-      {label:'Chi Ph\u00ED',data:countries.slice(0,8).map(c=>c.cost),backgroundColor:'#ef444488',borderColor:'#ef4444',borderWidth:1,borderRadius:3},
-    ]
-  },options:{responsive:true,indexAxis:'y',plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-    scales:{x:{stacked:false,ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:9}},grid:{display:false}}}
-  }});
-
-  // Profit chart
-  destroyChart('bvProfitChart');
-  charts.bvProfitChart=new Chart(document.getElementById('bvProfitChart'),{type:'bar',data:{
-    labels:dates,
-    datasets:[{label:'L\u1EE3i Nhu\u1EADn',data:daily.map(x=>x.profit),
-      backgroundColor:daily.map(x=>x.profit>=0?'rgba(16,185,129,.5)':'rgba(239,68,68,.5)'),
-      borderColor:daily.map(x=>x.profit>=0?'#10b981':'#ef4444'),
-      borderWidth:1,borderRadius:2}]
-  },options:{responsive:true,plugins:{legend:{display:false}},
-    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}}}
-  }});
-
-  // Week comparison table
-  const wc=d.week_comparison||{};
-  const labels={'installs':'L\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t','revenue':'Doanh thu','cost':'Chi ph\u00ED','profit':'L\u1EE3i nhu\u1EADn','roas':'ROAS','daus':'DAU'};
-  document.getElementById('bvWeekBody').innerHTML=Object.keys(labels).map(k=>{
-    const w=wc[k]||{};
-    const c=w.current||0, p=w.previous||0, ch=w.change||0;
-    const color=((k==='cost'||k==='ecpi')?ch<0:ch>0)?'var(--green)':'var(--red)';
-    const prefix=k==='revenue'||k==='cost'||k==='profit'?'$':'';
-    const suffix=k==='roas'?'%':'';
-    return `<tr>
-      <td style="font-weight:600">${labels[k]}</td>
-      <td>${prefix}${fVN(Math.round(c))}${suffix}</td>
-      <td>${prefix}${fVN(Math.round(p))}${suffix}</td>
-      <td style="color:${color};font-weight:${Math.abs(ch)>20?'700':'400'}">${ch>0?'+':''}${ch}%</td>
-    </tr>`;
-  }).join('');
-}
-
-async function loadAiInsights(){
-  if(!bvData)return;
-  const btn=document.getElementById('bvAiBtn');
-  const el=document.getElementById('bvAiContent');
-  btn.disabled=true;btn.textContent='\u0110ang ph\u00E2n t\u00EDch...';
-  el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div class="spinner"></div> \u0110ang g\u1ECDi Claude AI ph\u00E2n t\u00EDch d\u1EEF li\u1EC7u...</div>';
-
-  try{
-    const r=await fetchJSON('/api/ai_insights',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({kpis:bvData.kpis,countries:bvData.countries,alerts:bvData.alerts,week_comparison:bvData.week_comparison}),
-    });
-    if(r.error){el.textContent='L\u1ED7i: '+r.error;return;}
-    // Format sections
-    let text=r.insights||'';
-    text=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    text=text.replace(/^### (.*)/gm,'<h4 style="color:var(--purple);margin:12px 0 4px">$1</h4>');
-    text=text.replace(/^## (.*)/gm,'<h3 style="color:var(--purple);margin:14px 0 6px">$1</h3>');
-    text=text.replace(/^- (.*)/gm,'<li style="margin-left:16px">$1</li>');
-    el.innerHTML=text;
-    document.getElementById('bvAiTime').textContent='C\u1EADp nh\u1EADt: '+new Date(r.generated_at).toLocaleString('vi-VN');
-  }catch(e){
-    el.textContent='L\u1ED7i: '+e.message;
-  }
-  btn.disabled=false;btn.textContent='Ph\u00E2n t\u00EDch AI';
-}
-
-async function init(){
-  progressStart(4,'Initializing APL389 dashboard...');
-  progressStep('Loading overview...');
-  await loadOverview();
-  progressStep('Loading trend...');
-  await loadTrend();
-  progressStep('Loading countries...');
-  await loadCountriesForOverview();
-  progressStep('Loading campaigns...');
-  await loadCampaignsForOverview();
-  progressDone();
-}
-
-function roasColor(v){return v>=100?'var(--green)':v>=80?'var(--amber)':'var(--red)';}
-function roasCls(v){return v>=100?'good':v>=80?'warn':'bad';}
-
-// === TAB 1: OVERVIEW ===
-async function loadOverview(){
-  try{
-    const r=await fetchJSON('/api/overview'+Q('overview'));
-    const t=r.totals||{};
-    document.getElementById('k_installs').textContent=fN(t.installs);
-    document.getElementById('k_revenue').textContent=fM(t.revenue);
-    document.getElementById('k_ecpi').textContent=fM(t.ecpi);
-    document.getElementById('k_cost').textContent=fM(t.cost);
-    document.getElementById('k_rev_d7').textContent=fM(t.rev_d7);
-    document.getElementById('k_rev_d0').textContent=fM(t.rev_d0);
-    document.getElementById('k_roas_d0').textContent=(t.roas_d0||0)+'%';
-    document.getElementById('k_roas_d1').textContent=(t.roas_d1||0)+'%';
-    document.getElementById('k_roas_d3').textContent=(t.roas_d3||0)+'%';
-    document.getElementById('k_roas_d7').textContent=(t.roas_d7||0)+'%';
-    // Color code ROAS
-    ['k_roas_d0','k_roas_d1','k_roas_d3','k_roas_d7'].forEach(id=>{
-      const el=document.getElementById(id);
-      const v=parseFloat(el.textContent);
-      el.style.color=roasColor(v);
-    });
-    if(r.fetched_at){document.getElementById('syncTime').textContent=new Date(r.fetched_at).toLocaleString();}
-    const bar=document.getElementById('alertBar');bar.innerHTML='';
-    (r.anomalies||[]).slice(0,8).forEach(a=>{
-      const el=document.createElement('span');
-      el.className='alert-badge '+(a.type==='spike'?'spike':'drop');
-      el.textContent=a.metric+' '+(a.type==='spike'?'\u2191':'\u2193')+Math.abs(a.change_pct)+'% '+a.date;
-      bar.appendChild(el);
-    });
-    const daily=r.daily||[];
-    const pr=daily.length<=2?3:0; // show points when few data points
-    // Installs + Revenue chart
-    destroyChart('overviewTrend');
-    if(daily.length){
-      charts.overviewTrend=new Chart(document.getElementById('overviewTrend'),{type:daily.length===1?'bar':'line',data:{
-        labels:daily.map(d=>d.date.slice(5)),
-        datasets:[
-          {label:'Installs',data:daily.map(d=>d.installs),borderColor:'#4c6ef5',backgroundColor:'rgba(76,110,245,.3)',fill:true,tension:.3,yAxisID:'y',borderWidth:2,pointRadius:pr},
-          {label:'Revenue',data:daily.map(d=>d.revenue),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.3)',fill:true,tension:.3,yAxisID:'y1',borderWidth:2,pointRadius:pr},
-        ]
-      },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-        scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{position:'left',ticks:{color:'#4c6ef5',font:{size:9}},grid:{color:'#1e2235'}},y1:{position:'right',ticks:{color:'#10b981',font:{size:9},callback:v=>'$'+fN(v)},grid:{display:false}}}
-      }});
-    }
-    // Cohort ROAS trend chart
-    destroyChart('cohortTrend');
-    if(daily.length){
-      charts.cohortTrend=new Chart(document.getElementById('cohortTrend'),{type:daily.length===1?'bar':'line',data:{
-        labels:daily.map(d=>d.date.slice(5)),
-        datasets:[
-          {label:'ROAS D0',data:daily.map(d=>d.roas_d0),borderColor:'#ef4444',backgroundColor:'#ef444455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
-          {label:'ROAS D1',data:daily.map(d=>d.roas_d1),borderColor:'#f59e0b',backgroundColor:'#f59e0b55',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
-          {label:'ROAS D3',data:daily.map(d=>d.roas_d3),borderColor:'#06b6d4',backgroundColor:'#06b6d455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
-          {label:'ROAS D7',data:daily.map(d=>d.roas_d7),borderColor:'#10b981',backgroundColor:'#10b98155',borderWidth:3,tension:.3,pointRadius:pr,fill:false},
-        ]
-      },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-        scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'%'},grid:{color:'#1e2235'},suggestedMin:0}}
-      }});
-    }
-    // Analysis
-    generateOverviewAnalysis(t,daily);
-  }catch(e){console.error(e);}
-}
-
-function generateOverviewAnalysis(t,daily){
-  const el=document.getElementById('analysisOverview');
-  const roasGrowth=t.roas_d7-t.roas_d0;
-  const revPerInstall=t.installs>0?(t.revenue/t.installs).toFixed(3):0;
-  const recentDays=daily.slice(-7);
-  const avgRecent=recentDays.length?recentDays.reduce((s,d)=>s+d.roas_d7,0)/recentDays.length:0;
-  el.innerHTML=`
-    <p><strong>T\u1ED5ng quan (30 ng\u00E0y):</strong> ${fN(t.installs)} l\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t v\u1EDBi chi ph\u00ED ${fM(t.cost)}, doanh thu ${fM(t.revenue)}.</p>
-    <p><strong>Cohort Revenue:</strong> Revenue D0 = ${fM(t.rev_d0)} \u2192 D7 = ${fM(t.rev_d7)}. T\u0103ng tr\u01B0\u1EDFng t\u1EEB D0\u2192D7: <span style="color:${roasGrowth>0?'var(--green)':'var(--red)'}">+${((t.rev_d7-t.rev_d0)/(t.rev_d0||1)*100).toFixed(1)}%</span></p>
-    <p><strong>ROAS Cohort:</strong> D0 = <span style="color:${roasColor(t.roas_d0)}">${t.roas_d0}x</span> \u2192 D1 = <span style="color:${roasColor(t.roas_d1)}">${t.roas_d1}x</span> \u2192 D3 = <span style="color:${roasColor(t.roas_d3)}">${t.roas_d3}x</span> \u2192 D7 = <span style="color:${roasColor(t.roas_d7)}">${t.roas_d7}x</span></p>
-    <p><strong>Nh\u1EADn x\u00E9t:</strong> ${t.roas_d7>=1.3?'ROAS D7 \u0111\u1EA1t m\u1EE9c t\u1ED1t (>1.3x), c\u00F3 th\u1EC3 scale budget.':t.roas_d7>=1?'ROAS D7 \u0111ang \u1EDF m\u1EE9c h\u00F2a v\u1ED1n. C\u1EA7n t\u1ED1i \u01B0u creative \u0111\u1EC3 n\u00E2ng l\u00EAn >1.3x tr\u01B0\u1EDBc khi scale.':'ROAS D7 d\u01B0\u1EDBi 1x \u2014 \u0111ang l\u1ED7. C\u1EA7n review l\u1EA1i to\u00E0n b\u1ED9 chi\u1EBFn l\u01B0\u1EE3c UA.'}</p>
-    <p><strong>Revenue/Install:</strong> M\u1ED7i l\u01B0\u1EE3t c\u00E0i \u0111\u1EB7t mang v\u1EC1 $${revPerInstall}. eCPI = ${fM(t.ecpi)}. ${t.ecpi>0&&revPerInstall>t.ecpi?'Margin d\u01B0\u01A1ng \u2014 m\u00F4 h\u00ECnh b\u1EC1n v\u1EEFng.':'Margin \u00E2m ho\u1EB7c r\u1EA5t m\u1ECFng \u2014 c\u1EA7n c\u1EA3i thi\u1EC7n monetization.'}</p>
-  `;
-}
-
-async function loadTrend(){
-  try{
-    const r=await fetchJSON('/api/trend'+Q('overview'));
-    allTrend=r.trend||{};
-  }catch(e){}
-}
-
-async function loadCountriesForOverview(){
-  try{
-    const r=await fetchJSON('/api/countries'+Q('overview'));
-    const top5=(r.countries||[]).slice(0,5);
-    destroyChart('overviewCountry');
-    if(top5.length){
-      charts.overviewCountry=new Chart(document.getElementById('overviewCountry'),{type:'bar',data:{
-        labels:top5.map(c=>c.country),
-        datasets:[{label:'Revenue',data:top5.map(c=>c.revenue),backgroundColor:COLORS.slice(0,5).map(c=>c+'aa'),borderColor:COLORS.slice(0,5),borderWidth:1,borderRadius:4}]
-      },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
-        scales:{x:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+fN(v)},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
-      }});
-    }
-  }catch(e){}
-}
-
-async function loadCampaignsForOverview(){
-  try{
-    const r=await fetchJSON('/api/campaigns'+Q('overview'));
-    const camps=(r.campaigns||[]).slice(0,8);
-    destroyChart('overviewApps');
-    if(camps.length){
-      charts.overviewApps=new Chart(document.getElementById('overviewApps'),{type:'doughnut',data:{
-        labels:camps.map(c=>c.campaign.length>30?c.campaign.slice(0,30)+'..':c.campaign),
-        datasets:[{data:camps.map(c=>c.installs),backgroundColor:COLORS.slice(0,8).map(c=>c+'cc'),borderColor:'#1a1d2e',borderWidth:2}]
-      },options:{responsive:true,plugins:{legend:{labels:{color:'#9ca3af',font:{size:8},boxWidth:8},position:'right'}}}});
-    }
-  }catch(e){}
-}
-
-// === TAB 2: OPTIMAL ZONES ===
-function renderOptimalZones(){
-  const cs=[...allCountries].slice(0,15);
-  const sortKey=document.getElementById('ozSort').value;
-  cs.sort((a,b)=>(b[sortKey]||0)-(a[sortKey]||0));
-  const grid=document.getElementById('ozGrid');
-  grid.innerHTML=cs.map(c=>{
-    const ecpi=c.ecpi||0;
-    const rpm=c.revenue&&c.installs?((c.revenue/c.installs)*1000).toFixed(1):'-';
-    const cr=c.clicks&&c.installs?(c.installs/c.clicks*100).toFixed(1):'-';
-    const roas=c.cost>0?(c.revenue/c.cost).toFixed(2):'0';
-    return `<div class="country-card">
-      <h4>${esc(c.country)} <span class="badge badge-${roas>=1.3?'good':roas>=1?'warn':'bad'}">${roas}x ROAS</span></h4>
-      <div class="formats">${fN(c.installs)} installs &middot; ${fM(c.cost)} spend</div>
-      <div class="zone-row"><span class="zone-label">eCPI</span><span class="zone-val">${fM(ecpi)}</span></div>
-      <div class="zone-row"><span class="zone-label">Revenue</span><span class="zone-val">${fM(c.revenue)}</span></div>
-      <div class="zone-row"><span class="zone-label">RPM</span><span class="zone-val">$${rpm}</span></div>
-      <div class="zone-row"><span class="zone-label">Conv. Rate</span><span class="zone-val">${cr}%</span></div>
-      <div class="zone-row"><span class="zone-label">ROAS D0</span><span class="zone-val ${c.roas_d0>=1.3?'good':c.roas_d0>=1?'warn':'bad'}">${c.roas_d0||0}x</span></div>
-      <div class="zone-row"><span class="zone-label">ROAS D7</span><span class="zone-val ${c.roas_d7>=1.3?'good':c.roas_d7>=1?'warn':'bad'}" style="font-size:14px;font-weight:700">${c.roas_d7||0}x</span></div>
-    </div>`;
-  }).join('');
-}
-document.getElementById('ozSort').addEventListener('change',renderOptimalZones);
-
-// === TAB 3: CAMPAIGNS ===
-async function loadCampaigns(){
-  try{
-    const r=await fetchJSON('/api/campaigns'+Q('campaigns'));
-    allCampaigns=r.campaigns||[];
-    campPage=1;
-    renderCampaigns();
-  }catch(e){}
-}
-function sortCamp(col){if(campSort.col===col)campSort.asc=!campSort.asc;else{campSort.col=col;campSort.asc=false;}renderCampaigns();}
-function renderCampaigns(){
-  const q=(document.getElementById('campSearch').value||'').toLowerCase();
-  let filtered=allCampaigns.filter(c=>!q||c.campaign.toLowerCase().includes(q));
-  filtered.sort((a,b)=>{const av=a[campSort.col],bv=b[campSort.col];if(typeof av==='string')return campSort.asc?av.localeCompare(bv):bv.localeCompare(av);return campSort.asc?av-bv:bv-av;});
-  const total=filtered.length;const pages=Math.ceil(total/campPerPage);
-  const start=(campPage-1)*campPerPage;
-  const page=filtered.slice(start,start+campPerPage);
-  document.getElementById('campBody').innerHTML=page.map(c=>{
-    const profitable=c.roas_d7>=1;
-    return `<tr class="${profitable?'row-good':'row-bad'}">
-      <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${esc(c.campaign)}</td>
-      <td>${fN(c.installs)}</td><td>${fM(c.cost)}</td><td>${fM(c.revenue)}</td><td>${fM(c.rev_d0)}</td>
-      <td class="${roasCls(c.roas_d0)}" style="font-weight:600">${c.roas_d0}x</td>
-      <td class="${roasCls(c.roas_d1)}">${c.roas_d1}x</td>
-      <td class="${roasCls(c.roas_d3)}">${c.roas_d3}x</td>
-      <td class="${roasCls(c.roas_d7)}" style="font-weight:600">${c.roas_d7}x</td>
-      <td>${fM(c.ecpi)}</td>
-      <td><span class="badge ${c.roas_d7>=1.3?'badge-good':c.roas_d7>=1?'badge-warn':'badge-bad'}">${c.roas_d7>=1.3?'Good':c.roas_d7>=1?'Even':'Bad'}</span></td>
-    </tr>`;
-  }).join('');
-  // Analysis
-  if(allCampaigns.length){
-    const good=allCampaigns.filter(c=>c.roas_d7>=1.3);
-    const bad=allCampaigns.filter(c=>c.roas_d7<1);
-    const topCamp=allCampaigns.length?[...allCampaigns].sort((a,b)=>b.roas_d7-a.roas_d7)[0]:null;
-    const worstCamp=allCampaigns.length?[...allCampaigns].sort((a,b)=>a.roas_d7-b.roas_d7)[0]:null;
-    document.getElementById('analysisCampaign').innerHTML=`
-      <p><strong>T\u1ED5ng:</strong> ${allCampaigns.length} campaigns. <span class="good">${good.length} profitable (ROAS D7>1.3x)</span>, <span class="bad">${bad.length} thua l\u1ED7 (ROAS D7<1x)</span>.</p>
-      ${topCamp?`<p><strong>Campaign t\u1ED1t nh\u1EA5t:</strong> "${esc(topCamp.campaign.slice(0,60))}" \u2014 ROAS D7 = <span class="good">${topCamp.roas_d7}x</span>, ${fN(topCamp.installs)} installs.</p>`:''}
-      ${worstCamp&&worstCamp.roas_d7<1?`<p><strong>Campaign k\u00E9m nh\u1EA5t:</strong> "${esc(worstCamp.campaign.slice(0,60))}" \u2014 ROAS D7 = <span class="bad">${worstCamp.roas_d7}x</span>. N\u00EAn pause ho\u1EB7c t\u1ED1i \u01B0u l\u1EA1i.</p>`:''}
-      <p><strong>\u0110\u1EC1 xu\u1EA5t:</strong> T\u1EADp trung budget v\u00E0o ${good.length} campaigns c\u00F3 ROAS D7>1.3x. Gi\u1EA3m ho\u1EB7c d\u1EEBng ${bad.length} campaigns \u0111ang l\u1ED7.</p>
-    `;
-  }
-  let pg='';
-  if(pages>1){
-    pg+=`<button ${campPage<=1?'disabled':''} onclick="campPage--;renderCampaigns();">&lt;</button>`;
-    pg+=`<span>Page ${campPage} of ${pages} (${total} campaigns)</span>`;
-    pg+=`<button ${campPage>=pages?'disabled':''} onclick="campPage++;renderCampaigns();">&gt;</button>`;
-  }else{pg=`<span>${total} campaigns</span>`;}
-  document.getElementById('campPagination').innerHTML=pg;
-}
-document.getElementById('campSearch').addEventListener('input',()=>{campPage=1;renderCampaigns();});
-
-function exportCSV(){
-  const header='Campaign,Installs,Cost,Revenue,eCPI\n';
-  const rows=allCampaigns.map(c=>`"${c.campaign}",${c.installs},${c.cost},${c.revenue},${c.ecpi}`).join('\n');
-  const blob=new Blob([header+rows],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='apl389_campaigns.csv';a.click();
-}
-
-// === TAB 4: COUNTRIES ===
-async function loadCountries(){
-  try{
-    const r=await fetchJSON('/api/countries'+Q('countries'));
-    allCountries=r.countries||[];
-    renderCountries();
-    renderOptimalZones();
-  }catch(e){}
-}
-function sortCountry(col){if(countrySort.col===col)countrySort.asc=!countrySort.asc;else{countrySort.col=col;countrySort.asc=false;}renderCountries();}
-function renderCountries(){
-  const sorted=[...allCountries].sort((a,b)=>{const av=a[countrySort.col],bv=b[countrySort.col];if(typeof av==='string')return countrySort.asc?av.localeCompare(bv):bv.localeCompare(av);return countrySort.asc?av-bv:bv-av;});
-  // Populate dropdown
-  const sel=document.getElementById('countrySelect');
-  const cur=sel.value;
-  sel.innerHTML='<option value="">-- Ch\u1ECDn country \u0111\u1EC3 xem chi ti\u1EBFt --</option>';
-  allCountries.forEach(c=>{const o=document.createElement('option');o.value=c.country;o.textContent=`${c.country} (${fN(c.installs)} installs)`;sel.appendChild(o);});
-  sel.value=cur;
-  // Table
-  document.getElementById('countryBody').innerHTML=sorted.map(c=>`<tr>
-    <td style="font-weight:600">${esc(c.country)}</td><td>${fN(c.installs)}</td>
-    <td>${fM(c.cost)}</td><td>${fM(c.revenue)}</td>
-    <td class="${roasCls(c.roas_d0)}">${c.roas_d0}x</td>
-    <td class="${roasCls(c.roas_d7)}" style="font-weight:700">${c.roas_d7}x</td>
-    <td>${fM(c.ecpi)}</td>
-    <td><button onclick="selectCountry('${esc(c.country)}')" style="background:var(--blue);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer">Chi ti\u1EBFt</button></td>
-  </tr>`).join('');
-}
-
-// Country detail
-document.getElementById('countrySelect').addEventListener('change',e=>{
-  if(e.target.value)selectCountry(e.target.value);
-});
-
-function closeCountryDetail(){
-  document.getElementById('countryDetail').style.display='none';
-  document.getElementById('countrySummaryWrap').style.display='';
-}
-
-async function selectCountry(country){
-  document.getElementById('countrySelect').value=country;
-  document.getElementById('countrySummaryWrap').style.display='none';
-  document.getElementById('countryDetail').style.display='block';
-  document.getElementById('cdTitle').textContent=country+' (30 ng\u00E0y)';
-  document.getElementById('countryLoading').style.display='inline';
-
-  try{
-    const r=await fetchJSON('/api/country_daily?country='+encodeURIComponent(country)+'&app=APL389');
-    if(r.error){document.getElementById('cdAnalysis').textContent=r.error;return;}
-    document.getElementById('countryLoading').style.display='none';
-    renderCountryDetail(r, country);
-  }catch(e){
-    document.getElementById('countryLoading').style.display='none';
-    document.getElementById('cdAnalysis').textContent='L\u1ED7i: '+e.message;
-  }
-}
-
-function renderCountryDetail(data, country){
-  const days=data.days||[];
-  const t=data.totals||{};
-
-  // KPIs
-  document.getElementById('cdKpis').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Installs</div><div class="kpi-value">${fN(t.installs)}</div></div>
-    <div class="kpi"><div class="kpi-label">Cost / eCPI</div><div class="kpi-value">${fM(t.cost)}</div><div class="kpi-sub">eCPI: ${fM(t.ecpi)}</div></div>
-    <div class="kpi"><div class="kpi-label">ROAS D0</div><div class="kpi-value" style="color:${roasColor(t.roas_d0)}">${t.roas_d0}x</div></div>
-    <div class="kpi"><div class="kpi-label">ROAS D7</div><div class="kpi-value" style="color:${roasColor(t.roas_d7)}">${t.roas_d7}x</div></div>
-    <div class="kpi"><div class="kpi-label">LTV D7</div><div class="kpi-value">${fM(t.ltv_d7)}</div><div class="kpi-sub">D0: ${fM(t.ltv_d0)}</div></div>
-  `;
-
-  // ROAS Cohort chart
-  destroyChart('cdRoasChart');
-  charts.cdRoasChart=new Chart(document.getElementById('cdRoasChart'),{type:'line',data:{
-    labels:days.map(d=>d.date.slice(5)),
-    datasets:[
-      {label:'ROAS D0',data:days.map(d=>d.roas_d0),borderColor:'#ef4444',borderWidth:2,tension:.3,pointRadius:2,fill:false},
-      {label:'ROAS D1',data:days.map(d=>d.roas_d1),borderColor:'#f59e0b',borderWidth:2,tension:.3,pointRadius:2,fill:false},
-      {label:'ROAS D3',data:days.map(d=>d.roas_d3),borderColor:'#06b6d4',borderWidth:2,tension:.3,pointRadius:2,fill:false},
-      {label:'ROAS D7',data:days.map(d=>d.roas_d7),borderColor:'#10b981',borderWidth:3,tension:.3,pointRadius:3,fill:false},
-    ]
-  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>v+'%'},grid:{color:'#1e2235'},suggestedMin:0}}
-  }});
-
-  // LTV chart
-  destroyChart('cdLtvChart');
-  charts.cdLtvChart=new Chart(document.getElementById('cdLtvChart'),{type:'line',data:{
-    labels:days.map(d=>d.date.slice(5)),
-    datasets:[
-      {label:'LTV D0',data:days.map(d=>d.ltv_d0),borderColor:'#ef4444',borderWidth:2,tension:.3,pointRadius:2,fill:false},
-      {label:'LTV D3',data:days.map(d=>d.ltv_d3),borderColor:'#06b6d4',borderWidth:2,tension:.3,pointRadius:2,fill:false},
-      {label:'LTV D7',data:days.map(d=>d.ltv_d7),borderColor:'#10b981',borderWidth:3,tension:.3,pointRadius:3,fill:false},
-    ]
-  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-    scales:{x:{ticks:{color:'#4b5563',font:{size:9},maxTicksLimit:15},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',font:{size:9},callback:v=>'$'+v},grid:{color:'#1e2235'},suggestedMin:0}}
-  }});
-
-  // Daily bar chart
-  destroyChart('cdDailyChart');
-  charts.cdDailyChart=new Chart(document.getElementById('cdDailyChart'),{type:'bar',data:{
-    labels:days.map(d=>d.date.slice(5)),
-    datasets:[
-      {label:'Installs',data:days.map(d=>d.installs),backgroundColor:'#4c6ef566',borderColor:'#4c6ef5',borderWidth:1,borderRadius:3,yAxisID:'y'},
-      {type:'line',label:'Cost',data:days.map(d=>d.cost),borderColor:'#ef4444',borderDash:[4,3],borderWidth:1.5,pointRadius:0,yAxisID:'y1',fill:false},
-      {type:'line',label:'Revenue',data:days.map(d=>d.revenue),borderColor:'#10b981',borderWidth:2,pointRadius:0,yAxisID:'y1',fill:false},
-    ]
-  },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-    scales:{x:{ticks:{color:'#4b5563',font:{size:9}},grid:{color:'#1e2235'}},y:{position:'left',ticks:{color:'#4c6ef5',font:{size:9}},grid:{color:'#1e2235'}},y1:{position:'right',ticks:{color:'#10b981',font:{size:9},callback:v=>'$'+fN(v)},grid:{display:false}}}
-  }});
-
-  // Table
-  document.getElementById('cdTableBody').innerHTML=days.map((d,i)=>{
-    let chg='';
-    if(i>0){const prev=days[i-1].roas_d7;const diff=d.roas_d7-prev;chg=diff>0?'\u2191':diff<0?'\u2193':'';}
-    return `<tr>
-      <td>${d.date}</td><td>${fN(d.installs)}</td><td>${fM(d.cost)}</td><td>${fM(d.revenue)}</td>
-      <td>${fM(d.rev_d0)}</td><td>${fM(d.rev_d7)}</td>
-      <td class="${roasCls(d.roas_d0)}">${d.roas_d0}x</td>
-      <td class="${roasCls(d.roas_d1)}">${d.roas_d1}x</td>
-      <td class="${roasCls(d.roas_d3)}">${d.roas_d3}x</td>
-      <td class="${roasCls(d.roas_d7)}" style="font-weight:700">${d.roas_d7}x ${chg}</td>
-      <td>${fM(d.ltv_d0)}</td><td>${fM(d.ltv_d3)}</td><td>${fM(d.ltv_d7)}</td>
-      <td>${fM(d.ecpi)}</td>
-    </tr>`;
-  }).join('');
-
-  // Analysis
-  generateCountryAnalysis(days, t, country);
-}
-
-function generateCountryAnalysis(days, t, country){
-  const el=document.getElementById('cdAnalysis');
-  if(!days.length){el.innerHTML='<p>Kh\u00F4ng c\u00F3 d\u1EEF li\u1EC7u.</p>';return;}
-
-  // Volatility
-  const roas7=days.map(d=>d.roas_d7).filter(v=>v>0);
-  const avg=roas7.length?roas7.reduce((s,v)=>s+v,0)/roas7.length:0;
-  const maxR=Math.max(...roas7);
-  const minR=Math.min(...roas7);
-  const volatility=avg>0?((maxR-minR)/avg*100).toFixed(1):0;
-  const maxDay=days.find(d=>d.roas_d7===maxR);
-  const minDay=days.find(d=>d.roas_d7===minR);
-
-  // Trend (last 7 days vs first 7 days)
-  const first7=days.slice(0,7).filter(d=>d.roas_d7>0);
-  const last7=days.slice(-7).filter(d=>d.roas_d7>0);
-  const avgFirst=first7.length?first7.reduce((s,d)=>s+d.roas_d7,0)/first7.length:0;
-  const avgLast=last7.length?last7.reduce((s,d)=>s+d.roas_d7,0)/last7.length:0;
-  const trendPct=avgFirst>0?((avgLast-avgFirst)/avgFirst*100).toFixed(1):0;
-
-  // LTV growth
-  const ltvGrowth=t.ltv_d0>0?((t.ltv_d7-t.ltv_d0)/t.ltv_d0*100).toFixed(1):0;
-
-  // Find problem days
-  const badDays=days.filter(d=>d.roas_d7>0&&d.roas_d7<1);
-
-  el.innerHTML=`
-    <p><strong>1. T\u1ED5ng quan ${esc(country)}:</strong> ${fN(t.installs)} installs, chi ph\u00ED ${fM(t.cost)}, ROAS D7 t\u1ED5ng = <span style="color:${roasColor(t.roas_d7)};font-weight:700">${t.roas_d7}x</span>.</p>
-
-    <p><strong>2. Bi\u00EAn \u0111\u1ED9 dao \u0111\u1ED9ng ROAS D7:</strong> Dao \u0111\u1ED9ng <span style="color:${volatility>40?'var(--red)':volatility>20?'var(--amber)':'var(--green)'};font-weight:600">${volatility}%</span> (min ${minR}x ng\u00E0y ${minDay?minDay.date:'-'} \u2192 max ${maxR}x ng\u00E0y ${maxDay?maxDay.date:'-'}).
-    ${volatility>40?' \u26A0\uFE0F Bi\u00EAn \u0111\u1ED9 r\u1EA5t cao \u2014 hi\u1EC7u qu\u1EA3 kh\u00F4ng \u1ED5n \u0111\u1ECBnh, c\u1EA7n ki\u1EC3m tra creative v\u00E0 audience.':volatility>20?' Bi\u00EAn \u0111\u1ED9 trung b\u00ECnh \u2014 c\u00F3 nh\u1EEFng ng\u00E0y y\u1EBFu c\u1EA7n t\u1ED1i \u01B0u.':' \u2705 \u1ED4n \u0111\u1ECBnh.'}</p>
-
-    <p><strong>3. Xu h\u01B0\u1EDBng:</strong> ROAS D7 trung b\u00ECnh 7 ng\u00E0y \u0111\u1EA7u = ${avgFirst.toFixed(2)}x \u2192 7 ng\u00E0y cu\u1ED1i = ${avgLast.toFixed(2)}x. Thay \u0111\u1ED5i: <span style="color:${trendPct>=0?'var(--green)':'var(--red)'}"> ${trendPct>0?'+':''}${trendPct}%</span>.
-    ${trendPct<-10?' \u26A0\uFE0F ROAS \u0111ang gi\u1EA3m r\u00F5 r\u00E0ng \u2014 creative c\u00F3 th\u1EC3 \u0111ang m\u1EC7t ho\u1EB7c audience b\u00E3o h\u00F2a.':trendPct>10?' \u2705 ROAS \u0111ang c\u1EA3i thi\u1EC7n \u2014 chi\u1EBFn l\u01B0\u1EE3c hi\u1EC7n t\u1EA1i \u0111ang hi\u1EC7u qu\u1EA3.':' Kh\u00F4ng thay \u0111\u1ED5i \u0111\u00E1ng k\u1EC3.'}</p>
-
-    <p><strong>4. LTV:</strong> D0 = ${fM(t.ltv_d0)} \u2192 D7 = ${fM(t.ltv_d7)} (t\u0103ng <span class="good">+${ltvGrowth}%</span>). ${ltvGrowth<10?'LTV t\u0103ng ch\u1EADm t\u1EEB D0\u2192D7 \u2014 user kh\u00F4ng quay l\u1EA1i nhi\u1EC1u, c\u1EA7n c\u1EA3i thi\u1EC7n retention/engagement.':ltvGrowth>30?'LTV t\u0103ng m\u1EA1nh \u2014 user c\u00F3 gi\u00E1 tr\u1ECB d\u00E0i h\u1EA1n t\u1ED1t, n\u00EAn scale th\u1ECB tr\u01B0\u1EDDng n\u00E0y.':'LTV t\u0103ng kh\u00E1, user \u0111ang monetize t\u1ED1t d\u1EA7n.'}</p>
-
-    ${badDays.length?`<p><strong>5. Ng\u00E0y c\u00F3 v\u1EA5n \u0111\u1EC1 (ROAS D7 &lt; 1x):</strong> ${badDays.map(d=>`<span class="bad">${d.date} (${d.roas_d7}x)</span>`).join(', ')}. Nh\u1EEFng ng\u00E0y n\u00E0y chi nhi\u1EC1u h\u01A1n thu \u2014 ki\u1EC3m tra xem c\u00F3 campaign n\u00E0o ch\u1EA1y k\u00E9m ho\u1EB7c bidding qu\u00E1 cao.</p>`:'<p><strong>5.</strong> <span class="good">Kh\u00F4ng c\u00F3 ng\u00E0y n\u00E0o ROAS D7 d\u01B0\u1EDBi 1x \u2014 th\u1ECB tr\u01B0\u1EDDng kh\u00F3e m\u1EA1nh.</span></p>'}
-
-    <p style="margin-top:8px;padding:8px 12px;background:rgba(124,58,237,.08);border-radius:6px;border-left:3px solid var(--purple)"><strong>\u0110\u1EC1 xu\u1EA5t cho ${esc(country)}:</strong><br>
-    ${t.roas_d7>=1.3?'\u2705 ROAS D7 t\u1ED1t (>1.3x). C\u00F3 th\u1EC3 t\u0103ng budget 20-30% v\u00E0 theo d\u00F5i.'
-    :t.roas_d7>=1?'\u26A0\uFE0F ROAS D7 h\u00F2a v\u1ED1n. T\u1EADp trung t\u1ED1i \u01B0u creative v\u00E0 bidding. Kh\u00F4ng n\u00EAn scale cho \u0111\u1EBFn khi ROAS>1.3x.'
-    :'\u274C ROAS D7 d\u01B0\u1EDBi 1x \u2014 \u0111ang l\u1ED7. C\u00E2n nh\u1EAFc: (1) Gi\u1EA3m budget 50%, (2) Test creative m\u1EDBi, (3) N\u1EBFu kh\u00F4ng c\u1EA3i thi\u1EC7n trong 1 tu\u1EA7n \u2192 pause.'}
-    ${volatility>30?'<br>\u26A0\uFE0F Bi\u00EAn \u0111\u1ED9 cao ('+volatility+'%). Set up automated rules \u0111\u1EC3 pause campaign khi ROAS gi\u1EA3m d\u01B0\u1EDBi ng\u01B0\u1EE1ng.':''}
-    </p>
-  `;
-}
-
-// === TAB 5: ROAS ===
-async function loadRoas(){
-  try{
-    const r=await fetchJSON('/api/roas'+Q('roas'));
-    if(r.error){document.getElementById('analysisRoas').textContent=r.error;return;}
-    roasData=r;
-    renderRoas();
-  }catch(e){console.error('roas',e);}
-}
-function renderRoas(){
-  const d=roasData;
-  const daily=d.apl389_daily||[];
-  const bc=d.apl389_by_country||[];
-  const t=d.totals||{};
-  const totalCost=t.cost||0;
-  const totalRev=t.revenue||0;
-  const overallRoasD7=t.roas_d7||0;
-  const overallRoasD0=t.roas_d0||0;
-  const bestC=bc.length?bc.reduce((a,b)=>(a.roas_d7||0)>(b.roas_d7||0)?a:b):{};
-
-  document.getElementById('roasKpis').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Ad Spend</div><div class="kpi-value">${fM(totalCost)}</div></div>
-    <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value">${fM(totalRev)}</div></div>
-    <div class="kpi" style="border-color:${roasColor(overallRoasD7)}"><div class="kpi-label">ROAS Cohort D7</div><div class="kpi-value">${overallRoasD7}%</div><div class="kpi-sub">D0: ${overallRoasD0}%</div></div>
-    <div class="kpi" style="border-color:var(--green)"><div class="kpi-label">Best Country</div><div class="kpi-value">${bestC.roas_d7||0}%</div><div class="kpi-sub">${bestC.country||'-'}</div></div>
-  `;
-
-  // Daily ROAS cohort chart
-  destroyChart('roasTrend');
-  if(daily.length){
-    const pr=daily.length<=2?4:2;
-    charts.roasTrend=new Chart(document.getElementById('roasTrend'),{type:daily.length===1?'bar':'line',data:{
-      labels:daily.map(x=>x.date.slice(5)),
-      datasets:[
-        {label:'ROAS D0',data:daily.map(x=>x.roas_d0),borderColor:'#ef4444',backgroundColor:'#ef444455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
-        {label:'ROAS D1',data:daily.map(x=>x.roas_d1),borderColor:'#f59e0b',backgroundColor:'#f59e0b55',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
-        {label:'ROAS D3',data:daily.map(x=>x.roas_d3),borderColor:'#06b6d4',backgroundColor:'#06b6d455',borderWidth:2,tension:.3,pointRadius:pr,fill:false},
-        {label:'ROAS D7',data:daily.map(x=>x.roas_d7),borderColor:'#10b981',backgroundColor:'#10b98155',borderWidth:3,tension:.3,pointRadius:pr,fill:false},
-      ]
-    },options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#9ca3af',font:{size:10}}}},
-      scales:{x:{ticks:{color:'#6b7280'},grid:{color:'#1e2235'}},y:{ticks:{color:'#6b7280',callback:v=>v+'%'},grid:{color:'#1e2235'},suggestedMin:0}}
-    }});
-  }
-
-  // Country ROAS D7 bar
-  const sortedC=[...bc].sort((a,b)=>(b.roas_d7||0)-(a.roas_d7||0)).slice(0,10);
-  destroyChart('roasCampaign');
-  if(sortedC.length){
-    charts.roasCampaign=new Chart(document.getElementById('roasCampaign'),{type:'bar',data:{
-      labels:sortedC.map(a=>a.country),
-      datasets:[{data:sortedC.map(a=>a.roas_d7),
-        backgroundColor:sortedC.map(a=>(a.roas_d7||0)>=1.3?'#10b98188':(a.roas_d7||0)>=1?'#f59e0b88':'#ef444488'),
-        borderColor:sortedC.map(a=>(a.roas_d7||0)>=1.3?'#10b981':(a.roas_d7||0)>=1?'#f59e0b':'#ef4444'),
-        borderWidth:1,borderRadius:3}]
-    },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#6b7280',callback:v=>v+'%'},grid:{color:'#1e2235'}},y:{ticks:{color:'#e0e0e0',font:{size:10}},grid:{display:false}}}
-    }});
-  }
-
-  // Table with real cohort data
-  document.getElementById('roasBody').innerHTML=bc.map(a=>{
-    const r7=a.roas_d7||0;const label=r7>=1.5?'Good':r7>=1?'Even':'Bad';
-    const badge=r7>=1.5?'badge-good':r7>=1?'badge-warn':'badge-bad';
-    return `<tr><td style="font-weight:600">${esc(a.country)}</td><td>${fM(a.cost)}</td>
-      <td>${fM(a.revenue)}</td><td>${fM(a.revenue)}</td>
-      <td class="${roasCls(a.roas_d0||0)}">${a.roas_d0||0}x</td><td>-</td>
-      <td>-</td><td class="${roasCls(r7)}" style="font-weight:700">${r7}x</td>
-      <td><span class="badge ${badge}">${label}</span></td></tr>`;
-  }).join('');
-
-  // Analysis
-  const profitable=bc.filter(c=>(c.roas_d7||0)>=1.3);
-  const losing=bc.filter(c=>(c.roas_d7||0)<1&&c.cost>200);
-  const range=document.getElementById('dateRange');
-  const periodLabel=range.options[range.selectedIndex].text;
-  document.getElementById('analysisRoas').innerHTML=`
-    <p><strong>1. T\u1ED5ng chi ph\u00ED (${periodLabel}):</strong> ${fM(totalCost)}. Doanh thu: ${fM(totalRev)}. ROAS D7: <span style="color:${roasColor(overallRoasD7)};font-weight:700">${overallRoasD7}x</span>, D0: ${overallRoasD0}x</p>
-    <p><strong>2. Th\u1ECB tr\u01B0\u1EDDng ROAS D7 \u22651.3x:</strong> ${profitable.map(c=>'<span class="good">'+c.country+' ('+c.roas_d7+'x)</span>').join(', ')||'Kh\u00F4ng c\u00F3'}.</p>
-    ${losing.length?`<p><strong>3. ROAS D7 &lt;1x:</strong> ${losing.map(c=>'<span class="bad">'+c.country+' ('+(c.roas_d7||0)+'x)</span>').join(', ')}.</p>`:''}
-    <p><strong>\u0110\u1EC1 xu\u1EA5t:</strong> T\u0103ng budget th\u1ECB tr\u01B0\u1EDDng ROAS D7>1.3x. Gi\u1EA3m/pause th\u1ECB tr\u01B0\u1EDDng ROAS D7<1x. Theo d\u00F5i ROAS D0\u2192D7 h\u00E0ng ng\u00E0y.</p>
-  `;
-}
-
-// === REFRESH ===
-async function doRefresh(){
-  const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='Refreshing...';
-  progressStart(3,'Refreshing cache from Adjust API...');
-  try{
-    progressStep('Sending refresh request...');
-    await fetch('/api/refresh',{method:'POST'});
-    progressStep('Waiting for API response...');
-    await new Promise(r=>setTimeout(r,5000));
-    allCampaigns=[];allCountries=[];roasData=null;cohortData=null;
-    progressStep('Reloading dashboard...');
-    await init();
-  }catch(e){}
-  progressDone();
-  btn.disabled=false;btn.textContent='Refresh Cache';
-}
-
-// === TAB 6: COHORT REPORT ===
-let cohortData=null;
-let cohortCurrency='USD';
-const VND_RATE=25000;
-const COHORT_DAYS=[0,1,3,7,14,21,28];
-const COHORT_COLS=['No.','First Open Time','Cohort User D0','Install','Install/UserD0','Ad Spend','eCPI(all)','CPU',
-  'LTV D0','LTV D3','LTV D7',
-  'ROAS D0','ROAS D1','ROAS D3','ROAS D7','ROAS D14','ROAS D21','ROAS D28','ROAS All'];
-
-function toggleCohortCurrency(){
-  cohortCurrency=cohortCurrency==='USD'?'VND':'USD';
-  document.getElementById('cohortCurrBtn').textContent=cohortCurrency;
-  if(cohortData)renderCohort();
-}
-
-function cohortFmtM(v){
-  if(cohortCurrency==='VND')v=v*VND_RATE;
-  if(Math.abs(v)>=1e6)return(v/1e6).toFixed(1)+'M';
-  if(Math.abs(v)>=1e3)return(v/1e3).toFixed(1)+'K';
-  return v.toFixed(2);
-}
-function cohortFmtRoas(v){
-  // v is percentage (e.g. 188.91 = 188.91%)
-  return v.toFixed(2)+'%';
-}
-function roasBg(v){
-  // v is percentage (e.g. 188.91 = 188.91%)
-  if(v>=100)return'rgba(16,185,129,.2)';
-  if(v>=80)return'rgba(245,158,11,.15)';
-  if(v>=50)return'rgba(245,158,11,.1)';
-  return'rgba(239,68,68,.15)';
-}
-function roasFg(v){return v>=100?'#10b981':v>=80?'#f59e0b':v>=50?'#f59e0b':'#ef4444';}
-
-let cohortAbort=null;
-async function loadCohort(){
-  // Abort previous request if still running
-  if(cohortAbort)cohortAbort.abort();
-  cohortAbort=new AbortController();
-
-  const el=document.getElementById('cohortLoading');
-  el.style.display='block';
-  el.innerHTML='<div style="display:flex;align-items:center;gap:10px;justify-content:center"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div> Loading cohort data from Adjust API (may take 30-60s)...</div>';
-
-  const country=document.getElementById('cohortCountry').value;
-  let url='/api/cohort_report'+Q('cohort');
-  if(country)url+='&country='+encodeURIComponent(country);
-  try{
-    const r=await fetchJSON(url,{signal:cohortAbort.signal});
-    if(r.error){el.innerHTML='<span style="color:var(--red)">Error: '+esc(r.error)+'</span>';return;}
-    cohortData=r;
-    // Populate country dropdown
-    const sel=document.getElementById('cohortCountry');
-    if(sel.options.length<=1&&r.by_country&&r.by_country.length){
-      r.by_country.forEach(c=>{
-        if(c.group){const o=document.createElement('option');o.value=c.group;o.textContent=c.group;sel.appendChild(o);}
-      });
-    }
-    el.style.display='none';
-    renderCohort();
-  }catch(e){
-    if(e.name==='AbortError')return;
-    if(e.message==='Session expired')return; // fetchJSON handles redirect
-    el.style.display='block';
-    el.innerHTML='<span style="color:var(--red)">Error loading cohort: '+esc(e.message)+'<br><br><button onclick="loadCohort()" style="background:var(--purple);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer">Retry</button></span>';
-  }
-}
-
-function renderCohort(){
-  const d=cohortData;
-  renderCohortTable('cohortDateHead','cohortDateBody',d.by_date||[],d.totals_date);
-  renderCohortTable('cohortCountryHead','cohortCountryBody',d.by_country||[],d.totals_country);
-}
-
-function renderCohortTable(headId,bodyId,rows,totals){
-  // Header
-  document.getElementById(headId).innerHTML='<tr>'+COHORT_COLS.map(c=>`<th style="position:sticky;top:0;background:var(--card);z-index:1;padding:6px 5px;font-size:9px;white-space:nowrap">${c}</th>`).join('')+'</tr>';
-
-  // Build rows
-  let html='';
-  rows.forEach((r,i)=>{
-    html+=cohortRow(i+1,r);
-  });
-  // Total row
-  if(totals){
-    html+='<tr style="background:rgba(124,58,237,.1);font-weight:700">'+cohortCells('',totals)+'</tr>';
-  }
-  document.getElementById(bodyId).innerHTML=html;
-}
-
-function cohortRow(num,r){
-  return '<tr>'+cohortCells(num,r)+'</tr>';
-}
-
-function cohortCells(num,r){
-  const cs=cohortCurrency==='USD'?'$':'d';
-  let cells=`<td style="color:var(--muted)">${num||''}</td>`;
-  cells+=`<td style="font-weight:600;white-space:nowrap">${esc(r.group||'TOTAL')}</td>`;
-  cells+=`<td>${fN(r.cohort_users_d0)}</td>`;
-  cells+=`<td>${fN(r.installs)}</td>`;
-  cells+=`<td>${r.install_per_user||'-'}</td>`;
-  cells+=`<td>${cs}${cohortFmtM(r.cost)}</td>`;
-  cells+=`<td>${cs}${cohortFmtM(r.ecpi||0)}</td>`;
-  cells+=`<td>${cs}${cohortFmtM(r.cpu)}</td>`;
-  // LTV D0, D3, D7
-  cells+=`<td>${cs}${cohortFmtM(r.ltv_d0||0)}</td>`;
-  cells+=`<td>${cs}${cohortFmtM(r.ltv_d3||0)}</td>`;
-  cells+=`<td>${cs}${cohortFmtM(r.ltv_d7||0)}</td>`;
-  // ROAS columns (values from Adjust API directly, ratio format)
-  COHORT_DAYS.forEach(d=>{
-    const v=r['roas_d'+d]||0;
-    cells+=`<td style="background:${roasBg(v)};color:${roasFg(v)};font-weight:600;text-align:center">${cohortFmtRoas(v)}</td>`;
-  });
-  // ROAS All (calculated: revenue/cost*100, shown as %)
-  const ra=r.roas_all||0;
-  const raBg=ra>=100?'rgba(16,185,129,.2)':ra>=80?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)';
-  const raFg=ra>=100?'#10b981':ra>=80?'#f59e0b':'#ef4444';
-  cells+=`<td style="background:${raBg};color:${raFg};font-weight:700;text-align:center">${ra.toFixed(2)}%</td>`;
-  return cells;
-}
-
-function exportCohortCSV(){
-  if(!cohortData)return;
-  const rows=cohortData.by_date||[];
-  const header=COHORT_COLS.join(',')+'\n';
-  let csv=header;
-  rows.forEach((r,i)=>{
-    csv+=[i+1,r.group,r.cohort_users_d0,r.installs,r.install_per_user,r.cost,r.ecpi||0,r.cpu,
-      r.ltv_d0||0,r.ltv_d3||0,r.ltv_d7||0,
-      ...COHORT_DAYS.map(d=>(r['roas_d'+d]||0)),
-      (r.roas_all||0)+'%'
-    ].join(',')+'\n';
-  });
-  if(cohortData.totals_date){
-    const t=cohortData.totals_date;
-    csv+=['','TOTAL',t.cohort_users_d0,t.installs,t.install_per_user,t.cost,t.ecpi||0,t.cpu,
-      t.ltv_d0||0,t.ltv_d3||0,t.ltv_d7||0,
-      ...COHORT_DAYS.map(d=>(t['roas_d'+d]||0)),
-      (t.roas_all||0)+'%'
-    ].join(',')+'\n';
-  }
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cohort_report.csv';a.click();
-}
-
-async function applyFilter(btn,callback){
-  if(btn.disabled)return;
-  const origText=btn.textContent;
-  btn.disabled=true;
-  btn.textContent='Applying...';
-  btn.classList.add('applying');
-  progressStart(1,'Applying filter...');
-  try{
-    await callback();
-    progressStep('Done');
-    progressDone();
-  }catch(e){
-    console.error('Apply error:',e);
-    progressDone();
-  }
-  btn.disabled=false;
-  btn.textContent=origText;
-  btn.classList.remove('applying');
-}
-
-init();
 </script>
 </body>
 </html>
