@@ -18,3 +18,10 @@ Terabot proxy running on port 3001
 [MCP] Calling: query_data
 [MCP] query_data done in 535ms
 [CHAT] Max turns in 21155ms
+◇ injected env (10) from ../.env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Terabot proxy running on port 3001
+[MCP] Connected, 6 tools cached
+[CHAT] model=claude-sonnet-4-20250514 tools=true tokens=1500
+[MCP] Calling: marketing_report
+[MCP] marketing_report done in 2371ms
+[CHAT] Done in 11076ms (2 turns, claude-sonnet-4-20250514)

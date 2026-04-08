@@ -29,7 +29,8 @@ const SYSTEM_PROMPT = `You are Terabot, AI assistant for Terasofts Data Center w
 
 RULES:
 - Answer in the user's language. Be concise — no filler, no preamble.
-- Data questions: call ONE tool, present key numbers in a short table or list, add 1-2 sentence insight. Do NOT call multiple tools unless explicitly asked to compare.
+- Data questions: use the FEWEST tool calls possible. Prefer ONE tool call that covers everything. For comparisons, try to get all data in a single tool call with multiple products/filters. Only call a second tool if the first truly cannot answer.
+- Present key numbers in a short table or list, add 1-2 sentence insight.
 - General questions (no data needed): answer directly, do NOT call any tool.
 - Max response length: ~300 words. Use bullet points and tables over paragraphs.
 - Numbers: use K/M suffixes (e.g. 325K, $4.2K). Round to 2 decimals max.
@@ -229,7 +230,7 @@ app.post("/chat", async (req, res) => {
     console.log(`[CHAT] model=${model} tools=${wantsData} tokens=${maxTokens}`);
 
     let currentMessages = [...compressed];
-    const MAX_TURNS = 3;
+    const MAX_TURNS = 6;
     let lastReply = "";
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
