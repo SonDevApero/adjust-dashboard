@@ -232,6 +232,9 @@ async def serve_ai_chat_js():
     return FileResponse(js_file, media_type="application/javascript")
 
 
+PROXY_URL = os.getenv("AI_PROXY_URL", "http://localhost:3001/chat")
+
+
 @app.post("/api/ai_chat")
 async def ai_chat(request: Request):
     if not _is_authenticated(request):
@@ -243,17 +246,41 @@ async def ai_chat(request: Request):
     if not user_messages:
         return JSONResponse({"error": "No messages provided"}, status_code=400)
 
+    # Try Node proxy first (has MCP tools)
     try:
         async with httpx.AsyncClient(timeout=180) as client:
             resp = await client.post(
-                "http://localhost:3001/chat",
+                PROXY_URL,
                 json={"messages": user_messages},
             )
             data = resp.json()
             if resp.status_code != 200:
                 return JSONResponse({"error": data.get("error", "Proxy error")}, status_code=resp.status_code)
             return JSONResponse({"reply": data.get("reply", "No response.")})
-    except httpx.ConnectError:
-        return JSONResponse({"error": "AI proxy not available"}, status_code=503)
+    except (httpx.ConnectError, httpx.ConnectTimeout):
+        pass  # Fallback to direct Anthropic call
+
+    # Fallback: call Anthropic directly (no MCP tools)
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return JSONResponse({"error": "ANTHROPIC_API_KEY not configured"}, status_code=500)
+
+    try:
+        cleaned = [{"role": m["role"], "content": str(m["content"])}
+                    for m in user_messages
+                    if m.get("role") in ("user", "assistant")]
+        trimmed = cleaned[-6:] if len(cleaned) > 6 else cleaned
+        start = next((i for i, m in enumerate(trimmed) if m["role"] == "user"), 0)
+        safe = trimmed[start:]
+
+        ai_client = anthropic.Anthropic(api_key=api_key)
+        response = ai_client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1500,
+            system="You are Terabot, AI assistant for Terasofts Data Center. Answer in the user's language. Be concise. Note: data tools are temporarily unavailable, answer based on general knowledge.",
+            messages=safe,
+        )
+        reply = response.content[0].text
+        return JSONResponse({"reply": reply})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
