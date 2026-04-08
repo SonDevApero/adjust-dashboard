@@ -1,0 +1,12 @@
+◇ injected env (10) from ../.env // tip: ◈ secrets for agents [www.dotenvx.com]
+Terabot proxy running on port 3001
+[MCP] Connected, 6 tools cached
+[CHAT] model=claude-haiku-4-5-20251001 tools=false tokens=800
+[CHAT] Done in 2562ms (1 turns, claude-haiku-4-5-20251001)
+[CHAT] model=claude-sonnet-4-20250514 tools=true tokens=1500
+[MCP] Calling: product_health
+[MCP] product_health done in 3488ms
+[CHAT] Done in 10245ms (2 turns, claude-sonnet-4-20250514)
+◇ injected env (10) from ../.env // tip: ⌘ enable debugging { debug: true }
+Terabot proxy running on port 3001
+[MCP] Connected, 6 tools cached

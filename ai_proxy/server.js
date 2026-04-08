@@ -25,14 +25,17 @@ const MCP_URL = "http://34.73.107.214:8000/mcp";
 const MCP_AUTH =
   "mcp_ak_7d9e859878c869751f3841a631a394ee2799ce17ef8df6c693e7e5e8f00b9d63";
 
-const SYSTEM_PROMPT = `You are Terabot, an AI assistant for Terasofts Data Center. You have access to Data Gateway tools that provide real app analytics data (installs, revenue, DAU, sessions, ROAS, cost, marketing metrics, etc.).
+const SYSTEM_PROMPT = `You are Terabot, AI assistant for Terasofts Data Center with access to real analytics data via tools.
 
-When users ask about app data, metrics, or performance:
-1. Use the available tools to fetch real data
-2. Present the data clearly and concisely
-3. Provide brief insights
-
-Answer in the same language the user uses. Be concise. Avoid unnecessary verbose explanations.`;
+RULES:
+- Answer in the user's language. Be concise — no filler, no preamble.
+- Data questions: call ONE tool, present key numbers in a short table or list, add 1-2 sentence insight. Do NOT call multiple tools unless explicitly asked to compare.
+- General questions (no data needed): answer directly, do NOT call any tool.
+- Max response length: ~300 words. Use bullet points and tables over paragraphs.
+- Numbers: use K/M suffixes (e.g. 325K, $4.2K). Round to 2 decimals max.
+- Do NOT repeat the question back. Do NOT add disclaimers or caveats.
+- If tool returns empty/error, say so briefly and suggest alternatives.
+- TIMEZONE: Always use UTC+7 (Asia/Ho_Chi_Minh) for ALL date/time parameters when calling tools. When displaying dates to users, use UTC+7. This ensures data consistency across all sources.`;
 
 // ─── Persistent MCP connection pool ───
 let mcpClient = null;
@@ -136,6 +139,62 @@ async function callMcpToolsParallel(toolBlocks) {
   });
 }
 
+// ─── Cost optimization helpers ───
+
+// Truncate tool results to avoid sending huge payloads back to Claude
+const MAX_TOOL_RESULT_CHARS = 4000;
+function truncateToolResult(text) {
+  if (text.length <= MAX_TOOL_RESULT_CHARS) return text;
+  return text.slice(0, MAX_TOOL_RESULT_CHARS) + "\n...[truncated]";
+}
+
+// Summarize old assistant messages to reduce input tokens
+function compressHistory(messages) {
+  if (messages.length <= 4) return messages;
+  // Keep last 4 messages as-is, summarize older ones
+  const old = messages.slice(0, -4);
+  const recent = messages.slice(-4);
+
+  // Compress old messages into a single context line
+  const summary = old
+    .map((m) => {
+      const text = String(m.content);
+      if (m.role === "user") return `Q: ${text.slice(0, 80)}`;
+      // Truncate long assistant responses in history
+      return `A: ${text.slice(0, 120)}...`;
+    })
+    .join(" | ");
+
+  return [
+    { role: "user", content: `[Previous context: ${summary}]` },
+    { role: "assistant", content: "Understood, I have the context." },
+    ...recent,
+  ];
+}
+
+// Detect if question needs data tools or is just general chat
+const DATA_KEYWORDS = /\b(dau|mau|wau|revenue|install|cost|roas|ecpi|session|retention|arpu|arppu|ltv|churn|crash|metric|report|data|analytics|app version|marketing|campaign|country|cohort|product_health|product_metric|pdf1|aip016|gpt1|apl125)\b/i;
+
+function needsTools(userMsg) {
+  return DATA_KEYWORDS.test(userMsg);
+}
+
+// Choose model based on complexity
+const MODEL_FAST = "claude-haiku-4-5-20251001";
+const MODEL_SMART = "claude-sonnet-4-20250514";
+
+function chooseModel(userMsg, withTools) {
+  // Use Haiku for simple greetings, general chat without tools
+  if (!withTools) {
+    const simple = /^(hi|hello|hey|xin chao|chao|thanks|cam on|ok|bye|help|giup)\b/i;
+    if (simple.test(userMsg.trim()) || userMsg.trim().length < 20) {
+      return MODEL_FAST;
+    }
+  }
+  // Use Sonnet for data queries (needs tool calling)
+  return MODEL_SMART;
+}
+
 // ─── Chat endpoint ───
 app.post("/chat", async (req, res) => {
   const { messages } = req.body;
@@ -147,9 +206,7 @@ app.post("/chat", async (req, res) => {
   const t0 = Date.now();
 
   try {
-    const tools = await getMcpTools();
-
-    // Clean & trim: only user/assistant text, last 6 messages to reduce tokens
+    // Clean: only user/assistant text, last 6 messages
     const cleaned = messages
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => ({ role: m.role, content: String(m.content) }));
@@ -157,18 +214,34 @@ app.post("/chat", async (req, res) => {
     const startIdx = trimmed.findIndex((m) => m.role === "user");
     const safeMessages = startIdx > 0 ? trimmed.slice(startIdx) : trimmed;
 
-    let currentMessages = [...safeMessages];
-    const MAX_TURNS = 5;
+    // Compress old history to save tokens
+    const compressed = compressHistory(safeMessages);
+
+    // Get the latest user message
+    const lastUserMsg = [...compressed].reverse().find((m) => m.role === "user")?.content || "";
+    const wantsData = needsTools(lastUserMsg);
+
+    // Choose model and tools
+    const model = chooseModel(lastUserMsg, wantsData);
+    const tools = wantsData ? await getMcpTools() : [];
+    const maxTokens = wantsData ? 1500 : 800;
+
+    console.log(`[CHAT] model=${model} tools=${wantsData} tokens=${maxTokens}`);
+
+    let currentMessages = [...compressed];
+    const MAX_TURNS = 3;
     let lastReply = "";
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2048,
+      const params = {
+        model: model,
+        max_tokens: maxTokens,
         system: SYSTEM_PROMPT,
         messages: currentMessages,
-        tools: tools,
-      });
+      };
+      if (tools.length > 0) params.tools = tools;
+
+      const response = await anthropic.messages.create(params);
 
       let turnText = "";
       for (const block of response.content) {
@@ -179,14 +252,21 @@ app.post("/chat", async (req, res) => {
       const toolUseBlocks = response.content.filter((b) => b.type === "tool_use");
 
       if (toolUseBlocks.length === 0) {
-        console.log(`[CHAT] Done in ${Date.now() - t0}ms (${turn + 1} turns)`);
+        console.log(`[CHAT] Done in ${Date.now() - t0}ms (${turn + 1} turns, ${model})`);
         return res.json({ reply: lastReply || "No response." });
       }
 
-      // Execute all tool calls in parallel
+      // Execute tool calls in parallel, truncate results
       currentMessages.push({ role: "assistant", content: response.content });
       const toolResults = await callMcpToolsParallel(toolUseBlocks);
-      currentMessages.push({ role: "user", content: toolResults });
+
+      // Truncate large tool results to save tokens on next turn
+      const truncatedResults = toolResults.map((r) => ({
+        ...r,
+        content: typeof r.content === "string" ? truncateToolResult(r.content) : r.content,
+      }));
+
+      currentMessages.push({ role: "user", content: truncatedResults });
     }
 
     console.log(`[CHAT] Max turns in ${Date.now() - t0}ms`);
