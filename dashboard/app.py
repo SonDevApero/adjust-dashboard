@@ -12,14 +12,15 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+import anthropic
 from fastapi import FastAPI, Query, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 from dotenv import load_dotenv
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-load_dotenv()
+load_dotenv(override=True)
 
 from adjust_client.fetcher import ADJUST_TOKEN
 
@@ -221,3 +222,38 @@ async def data_gateway(
         "total_rows": len(result),
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     })
+
+
+# ─── AI Chat endpoints ───
+
+@app.get("/static/ai_chat.js")
+async def serve_ai_chat_js():
+    js_file = TEMPLATES_DIR / "ai_chat.js"
+    return FileResponse(js_file, media_type="application/javascript")
+
+
+@app.post("/api/ai_chat")
+async def ai_chat(request: Request):
+    if not _is_authenticated(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    body = await request.json()
+    user_messages = body.get("messages", [])
+
+    if not user_messages:
+        return JSONResponse({"error": "No messages provided"}, status_code=400)
+
+    try:
+        async with httpx.AsyncClient(timeout=180) as client:
+            resp = await client.post(
+                "http://localhost:3001/chat",
+                json={"messages": user_messages},
+            )
+            data = resp.json()
+            if resp.status_code != 200:
+                return JSONResponse({"error": data.get("error", "Proxy error")}, status_code=resp.status_code)
+            return JSONResponse({"reply": data.get("reply", "No response.")})
+    except httpx.ConnectError:
+        return JSONResponse({"error": "AI proxy not available"}, status_code=503)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)

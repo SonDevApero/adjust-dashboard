@@ -64,3 +64,73 @@ httpx.ReadTimeout: The read operation timed out
   ROAS D0 today: 126.11%
   Threshold: 100.0%
   ROAS OK. No alert needed.
+[11:00:01] Checking ROAS for APL389...
+  ROAS D0 today: 155.39%
+  Threshold: 100.0%
+  ROAS OK. No alert needed.
+[15:00:00] Checking ROAS for APL389...
+  ROAS D0 today: 122.36%
+  Threshold: 100.0%
+  ROAS OK. No alert needed.
+[09:00:01] Checking ROAS for APL389...
+  ROAS D0 today: 129.23%
+  Threshold: 100.0%
+  ROAS OK. No alert needed.
+[13:04:59] Checking ROAS for APL389...
+Traceback (most recent call last):
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+    raise exc
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+    stream = self._connect(request)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpcore/_backends/sync.py", line 215, in connect_tcp
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/contextlib.py", line 135, in __exit__
+    self.gen.throw(type, value, traceback)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ConnectError: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/user/adjust-dashboard/scripts/roas_alert.py", line 205, in <module>
+    main()
+  File "/Users/user/adjust-dashboard/scripts/roas_alert.py", line 182, in main
+    data = fetch_today_roas()
+  File "/Users/user/adjust-dashboard/scripts/roas_alert.py", line 49, in fetch_today_roas
+    resp = httpx.get(url, headers=headers, timeout=60)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_api.py", line 195, in get
+    return request(
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_api.py", line 109, in request
+    return client.request(
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/contextlib.py", line 135, in __exit__
+    self.gen.throw(type, value, traceback)
+  File "/Users/user/Library/Python/3.9/lib/python/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ConnectError: [Errno 8] nodename nor servname provided, or not known
+[15:00:00] Checking ROAS for APL389...
+  ROAS D0 today: 129.78%
+  Threshold: 100.0%
+  ROAS OK. No alert needed.

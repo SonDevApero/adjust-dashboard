@@ -1349,3 +1349,124 @@ INFO:     127.0.0.1:49884 - "GET /api/roas?app=APL389&start=2026-03-04&end=2026-
 INFO:     127.0.0.1:49885 - "GET /api/roas?app=APL389&start=2026-04-02&end=2026-04-02 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49886 - "GET /api/roas?app=APL389&start=2026-03-27&end=2026-04-03 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49914 - "GET /api/roas?app=APL389&start=2026-03-27&end=2026-04-03 HTTP/1.1" 200 OK
+INFO:     Will watch for changes in these directories: ['/Users/user/adjust-dashboard']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13610] using StatReload
+INFO:     Started server process [13613]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:62351 - "GET / HTTP/1.1" 302 Found
+INFO:     127.0.0.1:62355 - "GET / HTTP/1.1" 302 Found
+INFO:     127.0.0.1:62355 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62357 - "POST /login HTTP/1.1" 302 Found
+INFO:     127.0.0.1:62357 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62359 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62362 - "GET / HTTP/1.1" 302 Found
+INFO:     127.0.0.1:62362 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62362 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62364 - "POST /login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:62364 - "POST /login HTTP/1.1" 302 Found
+INFO:     127.0.0.1:62364 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62364 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62364 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62367 - "POST /api/ai_chat HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:62369 - "POST /api/ai_chat HTTP/1.1" 500 Internal Server Error
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13613]
+INFO:     Stopping reloader process [13610]
+INFO:     Will watch for changes in these directories: ['/Users/user/adjust-dashboard']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13703] using StatReload
+INFO:     Started server process [13706]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:62391 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62391 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62393 - "POST /api/ai_chat HTTP/1.1" 500 Internal Server Error
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13706]
+INFO:     Stopping reloader process [13703]
+INFO:     Will watch for changes in these directories: ['/Users/user/adjust-dashboard']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13737] using StatReload
+INFO:     Started server process [13740]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:62401 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62401 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62403 - "POST /api/ai_chat HTTP/1.1" 500 Internal Server Error
+WARNING:  StatReload detected changes in 'dashboard/app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13740]
+INFO:     Started server process [13768]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13768]
+INFO:     Stopping reloader process [13737]
+INFO:     Will watch for changes in these directories: ['/Users/user/adjust-dashboard']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13786] using StatReload
+INFO:     Started server process [13789]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:62412 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62412 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62412 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62412 - "POST /api/ai_chat HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'dashboard/app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13789]
+INFO:     Started server process [13943]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13943]
+INFO:     Stopping reloader process [13786]
+INFO:     Will watch for changes in these directories: ['/Users/user/adjust-dashboard']
+ERROR:    [Errno 48] Address already in use
+INFO:     Will watch for changes in these directories: ['/Users/user/adjust-dashboard']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13998] using StatReload
+INFO:     Started server process [14001]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:62547 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62547 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62555 - "POST /api/ai_chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62557 - "POST /api/ai_chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62579 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62579 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62579 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62579 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62579 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62654 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62625 - "POST /api/ai_chat HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:62790 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62790 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62815 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62815 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62817 - "POST /api/ai_chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62852 - "POST /api/ai_chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62876 - "POST /api/ai_chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62947 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62894 - "POST /api/ai_chat HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:62992 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62992 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62992 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62994 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62994 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62994 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63022 - "GET / HTTP/1.1" 200 OK
