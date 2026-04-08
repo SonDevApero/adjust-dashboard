@@ -1490,3 +1490,7 @@ INFO:     127.0.0.1:63269 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
 INFO:     127.0.0.1:63269 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:63273 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:63273 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63285 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63285 - "GET /static/ai_chat.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63285 - "GET /logout HTTP/1.1" 302 Found
+INFO:     127.0.0.1:63285 - "GET /login HTTP/1.1" 200 OK
